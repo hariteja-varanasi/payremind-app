@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Scope | PayRemind app at milestone M4, plus the planned AWS beta (M5) |
+| Scope | PayRemind app at milestone M4, plus the M5 AWS Terraform (written, not applied) |
 | Date | 26 Nov 2026 |
 | Audience | Hari (owner, learning security architecture) and any reviewer |
 
@@ -18,7 +18,7 @@
 | Merchant accounts | Whoever controls one can message that merchant's customers | `users`, `web_sessions`, API tokens |
 | The WhatsApp sender number and its quality rating | All merchants share it; spam or abuse could get it blocked | Meta Business account |
 | Pay links | Point customers at a UPI ID; tampering could redirect money | `invoices.pay_token`, `tenants.upi_vpa` |
-| API keys and secrets | Send messages, create subscriptions, forge sessions | Environment / Secrets Manager (M5) |
+| API keys and secrets | Send messages, create subscriptions, forge sessions | Environment variables; on AWS, SSM Parameter Store SecureString and an RDS-managed password |
 | GST invoices | Tax records | `billing_invoices` |
 
 ## 2. Trust boundaries
@@ -34,6 +34,7 @@
 | Razorpay → webhook | Razorpay | HMAC-SHA256 check; event id stored so retries are applied once |
 | App → database | App code | Every query filtered by `tenant_id`; isolation tests are a launch gate |
 | App → Meta / Razorpay APIs | App code | HTTPS with timeouts (10 s / 15 s); errors never echo provider responses |
+| Internet → AWS (M5 Terraform) | Everyone | Only CloudFront is public; WAF in front; load balancer accepts CloudFront IP ranges plus a secret origin header; app tasks accept traffic from the load balancer only; database in private subnets with no internet route |
 
 ## 3. Threat model (STRIDE)
 
@@ -49,8 +50,8 @@ mitigates it, and what is left.
 | **R**epudiation | Merchant disputes who marked an invoice paid or sent a reminder | Reminder log with provider message id | No audit log of user actions or sign-ins (gap G-1) |
 | **I**nformation disclosure | One merchant reads another's data | Tenant-scoped queries; 404 for other tenants' ids; dedicated isolation tests for API and web | Keep the rule in code review; consider PostgreSQL row-level security as a second layer |
 | **I**nformation disclosure | Pay link forwarded or guessed | 192-bit random token; only shows payee, invoice number, due date, amount | Links never expire; acceptable for beta, review later |
-| **I**nformation disclosure | Database stolen | Tokens and codes hashed; RDS encryption with KMS (M5) | Customer names and phones are plain text; restrict access; backups encrypted |
-| **D**enial of service | Flood of logins or uploads | Per-phone OTP limits; size and row caps | WAF rate rules (M5); Lambda concurrency limits; budget alarms catch cost attacks |
+| **I**nformation disclosure | Database stolen | Tokens and codes hashed; RDS encryption with AWS-managed keys, TLS forced (M5 Terraform) | Customer names and phones are plain text; restrict access; backups encrypted |
+| **D**enial of service | Flood of logins or uploads | Per-phone OTP limits; size and row caps | WAF rate rules, India-only geo rule except webhooks, AWS managed rule sets (M5 Terraform, not applied); budget alerts catch cost attacks |
 | **D**enial of service | Spam through our WhatsApp number damages its rating | Only invited merchants; templates only; STOP honoured globally | Enforce plan limits (gap G-3); watch the opt-out rate per merchant |
 | **E**levation of privilege | Merchant user reaches operator functions | Operator functions exist only in the CLI on the server; no admin web routes | Keep it that way; protect server and AWS console with MFA |
 
@@ -66,14 +67,14 @@ mitigates it, and what is left.
 | Security headers (nosniff, frame denial, referrer policy, no-store) | ✓ |
 | Input size limits on uploads and webhooks | ✓ |
 | Constant-time comparison of secrets | ✓ |
-| Secrets from environment, not code | ✓ (Secrets Manager in M5) |
+| Secrets from environment, not code | ✓ (SSM Parameter Store on AWS; real values set by hand, never in git or Terraform state) |
 | Container runs as non-root | ✓ |
 | Dependency scanning (pip-audit) and static analysis (bandit, mypy strict) in CI | ✓ |
 | SAST (CodeQL or Semgrep) and DAST (OWASP ZAP) | Planned (launch gate) |
-| Logging and monitoring of security events | Gap (G-1); CloudTrail/GuardDuty planned |
+| Logging and monitoring of security events | Gap in the app (G-1); CloudTrail, GuardDuty alerts, VPC flow logs and ALB logs in Terraform |
 | API token rotation and expiry | Gap (G-2) |
 | Account lockout alerting | Gap |
-| Backups and tested restore | Planned (M5, launch gate) |
+| Backups and tested restore | 7-day backups + PITR in Terraform; restore test is a launch gate |
 
 ## 5. Incident response (outline)
 
@@ -103,7 +104,7 @@ professional.** Who to ask is in brackets.
 | L-3 | Merchants have a lawful basis to send payment reminders to their customers on WhatsApp, and our templates qualify as "utility" messages | BRD, templates | Lawyer; Meta's policy pages |
 | L-4 | A single global opt-out list across merchants is acceptable and expected | Opt-out design | Lawyer; Meta policy |
 | L-5 | Data stored in India and passing through Meta's infrastructure is acceptable for this data | DPA §9 | Lawyer |
-| L-6 | CERT-In directions require reporting certain incidents within 6 hours and keeping logs for 180 days, and apply to PayRemind | NFR-6, NFR-10, PLAN | Lawyer |
+| L-6 | CERT-In directions require reporting certain incidents within 6 hours and keeping logs for 180 days (Terraform keeps 365), and apply to PayRemind | NFR-6, NFR-10, PLAN | Lawyer |
 | L-7 | GST registration timing (threshold), 18% rate, SAC 998314, CGST+SGST vs IGST by state, invoice numbering (max 16 characters, one series per financial year) | `billing/gst.py` | Chartered accountant |
 | L-8 | How long GST records and invoices must be kept | Data model §5 | Chartered accountant |
 | L-9 | Showing prices "+ GST" and charging GST-inclusive amounts through Razorpay is presented correctly | Billing page, tech spec §4.4 | Chartered accountant |
@@ -117,5 +118,6 @@ professional.** Who to ask is in brackets.
 3. Fail fast if `SECRET_KEY` is unset in production (G-10); token rotation command (G-2).
 4. Enforce plan limits to protect the shared WhatsApp number (G-3).
 5. Turn on CodeQL in GitHub and run OWASP ZAP against a local instance.
-6. Write the incident runbook and test a backup restore during M5.
+6. Write the incident runbook and test a backup restore after the Terraform is applied.
+8. Review the beta trade-offs accepted in `infra/terraform/.checkov.yaml` (single-AZ database, AWS-managed keys, public IP on app tasks, sampled WAF logs) before public launch.
 7. Consider PostgreSQL row-level security on tenant tables as defence in depth.

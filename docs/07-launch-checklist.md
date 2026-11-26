@@ -3,7 +3,7 @@
 Two stages: the **invite-only beta** (10–20 businesses, M5) and **public launch**. Tick items in
 pull requests as they are done. Items marked **⚖** need a professional.
 
-Status at 26 Nov 2026: M1–M4 merged; nothing deployed.
+Status at 26 Nov 2026: M1–M4 merged, M5 Terraform merged but not applied; nothing deployed.
 
 ## Stage 0: accounts and approvals (Hari, no cost)
 
@@ -19,19 +19,23 @@ Status at 26 Nov 2026: M1–M4 merged; nothing deployed.
 
 ## Stage 1: before the invite-only beta (M5)
 
-### Infrastructure (needs Hari's go-ahead to create anything in AWS)
+### Infrastructure (Terraform written; applying it needs Hari's go-ahead)
 
-- [ ] Decide database connectivity option (tech spec §7.1) and record the decision.
-- [ ] Terraform for: CloudFront + WAF, API Gateway, two Lambdas, EventBridge Scheduler,
-      RDS PostgreSQL (encrypted, backups on), Secrets Manager, ECR, log groups (180 days).
-- [ ] AWS account basics: root MFA, no root access keys, IAM roles with least privilege,
-      CloudTrail on, GuardDuty on.
-- [ ] AWS Budgets alarms at $50 and $100.
-- [ ] TLS certificate (ACM) on CloudFront; `PAYREMIND_COOKIE_SECURE=true`.
-- [ ] `PAYREMIND_SECRET_KEY` and all API secrets in Secrets Manager, never in Terraform state
-      in plain text.
-- [ ] `payremind migrate` runs as a deploy step before the new version takes traffic.
-- [ ] Daily job fires at 09:30 IST; first run checked by hand.
+Follow the runbook in [infra/README.md](../infra/README.md).
+
+- [x] Terraform for CloudFront + WAF, load balancer, ECS Fargate, EventBridge Scheduler, RDS,
+      SSM parameters, ECR, logs, CloudTrail, GuardDuty and budgets, checked offline in CI.
+- [x] Database connectivity without a NAT gateway decided (tech spec §7.1).
+- [ ] AWS account basics: root MFA, no root access keys, admin user in IAM Identity Center.
+- [ ] Terraform state bucket created (versioned, public access blocked).
+- [ ] Cost estimate re-checked in the AWS Pricing Calculator; `terraform plan` reviewed.
+- [ ] `terraform apply` (stage 1: zero app tasks, daily job off).
+- [ ] Real API secrets entered in SSM by hand, never in git or Terraform state.
+- [ ] ARM64 image pushed to ECR; `payremind migrate` run as a one-off task.
+- [ ] App scaled to one task; `/health` returns ok over HTTPS.
+- [ ] Meta and Razorpay webhook URLs and secrets set.
+- [ ] Daily job switched on after templates are approved; first 09:30 IST run checked by hand.
+- [ ] GuardDuty and budget alert emails tested.
 
 ### Application
 

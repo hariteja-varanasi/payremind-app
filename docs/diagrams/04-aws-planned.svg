@@ -42,20 +42,22 @@ stroke-linejoin:round}
 <rect class="canvas" x="0" y="0" width="1290" height="630"/>
 <rect class="z z-plan" x="200" y="20" width="880" height="590" rx="10"/>
 <text class="zl zl-plan" x="214" y="42">AWS account · ap-south-1 (Mumbai)</text>
-<rect class="z z-plan" x="860" y="120" width="200" height="290" rx="10"/>
-<text class="zl zl-plan" x="874" y="142">VPC · private subnets</text>
-<polyline class="e e-edge" points="170,150 200,150 200,185 230,185" marker-end="url(#a04)"/>
-<polyline class="e e-edge" points="170,240 200,240 200,200 230,200" marker-end="url(#a04)"/>
-<polyline class="e e-edge" points="170,330 210,330 210,215 230,215" marker-end="url(#a04)"/>
-<polyline class="e e-edge" points="390,200 440,200" marker-end="url(#a04)"/>
-<polyline class="e e-edge" points="600,200 650,200" marker-end="url(#a04)"/>
-<polyline class="e e-edge" points="600,337 650,337" marker-end="url(#a04)"/>
-<polyline class="e e-edge" points="735,160 735,80 1110,80" marker-end="url(#a04)"/>
-<polyline class="e e-warn dash" points="820,195 880,195" marker-end="url(#w04)"/>
-<polyline class="e e-warn dash" points="820,330 850,330 850,210 880,210" marker-end="url(#w04)"/>
-<polyline class="e e-edge" points="960,225 960,290" marker-end="url(#a04)"/>
-<polyline class="e e-edge dash" points="735,374 735,490" marker-end="url(#a04)"/>
-<polyline class="e e-edge dash" points="900,490 900,370" marker-end="url(#a04)"/>
+<rect class="z z-plan" x="420" y="100" width="640" height="320" rx="10"/>
+<text class="zl zl-plan" x="434" y="122">VPC 10.20.0.0/16</text>
+<rect class="z z-zone" x="435" y="130" width="405" height="275" rx="10"/>
+<text class="zl zl-zone" x="449" y="152">Public subnets, 2 AZs</text>
+<rect class="z z-zone" x="855" y="130" width="190" height="275" rx="10"/>
+<text class="zl zl-zone" x="869" y="152">Private subnets</text>
+<polyline class="e e-edge" points="170,150 195,150 195,190 220,190" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="170,240 195,240 195,205 220,205" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="170,330 205,330 205,222 220,222" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="370,202 465,202" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="605,202 660,202" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="370,347 660,347" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="742,165 742,80 1110,80" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="825,202 848,202 848,250 870,250" marker-end="url(#a04)"/>
+<polyline class="e e-edge" points="825,347 848,347 848,285 870,285" marker-end="url(#a04)"/>
+<polyline class="e e-edge dash" points="742,384 742,495" marker-end="url(#a04)"/>
 <rect class="n n-person" x="20" y="120" width="150" height="60" rx="14"/>
 <text class="nt" x="95" y="153.5" text-anchor="middle">Merchant browser</text>
 <rect class="n n-person" x="20" y="210" width="150" height="60" rx="14"/>
@@ -66,66 +68,63 @@ stroke-linejoin:round}
 <rect class="n n-ext" x="1110" y="40" width="160" height="80" rx="8"/>
 <text class="nt" x="1190" y="76" text-anchor="middle">Meta + Razorpay</text>
 <text class="ns" x="1190" y="92" text-anchor="middle">public APIs</text>
-<rect class="n n-plan" x="230" y="160" width="160" height="80" rx="8"/>
-<text class="nt" x="310" y="188.5" text-anchor="middle">CloudFront + WAF</text>
-<text class="ns" x="310" y="204.5" text-anchor="middle">TLS, rate rules</text>
-<text class="ns" x="310" y="219.5" text-anchor="middle">on /login</text>
-<rect class="n n-plan" x="440" y="160" width="160" height="80" rx="8"/>
-<text class="nt" x="520" y="196" text-anchor="middle">API Gateway</text>
-<text class="ns" x="520" y="212" text-anchor="middle">HTTP API</text>
-<rect class="n n-plan" x="650" y="160" width="170" height="80" rx="8"/>
-<text class="nt" x="735" y="188.5" text-anchor="middle">Lambda: web app</text>
-<text class="ns" x="735" y="204.5" text-anchor="middle">container image</text>
-<text class="ns" x="735" y="219.5" text-anchor="middle">FastAPI via Mangum</text>
-<rect class="n n-plan" x="440" y="300" width="160" height="74" rx="8"/>
-<text class="nt" x="520" y="325.5" text-anchor="middle">EventBridge</text>
-<text class="ns" x="520" y="341.5" text-anchor="middle">Scheduler</text>
-<text class="ns" x="520" y="356.5" text-anchor="middle">09:30 Asia/Kolkata</text>
-<rect class="n n-plan" x="650" y="300" width="170" height="74" rx="8"/>
-<text class="nt" x="735" y="325.5" text-anchor="middle">Lambda: daily job</text>
-<text class="ns" x="735" y="341.5" text-anchor="middle">payremind</text>
-<text class="ns" x="735" y="356.5" text-anchor="middle">run-reminders</text>
-<rect class="n n-plan" x="880" y="165" width="160" height="60" rx="8"/>
-<text class="nt" x="960" y="191" text-anchor="middle">RDS Proxy</text>
-<text class="ns" x="960" y="207" text-anchor="middle">connection pool</text>
-<rect class="n n-plan" x="880" y="290" width="160" height="80" rx="8"/>
-<text class="nt" x="960" y="318.5" text-anchor="middle">RDS PostgreSQL</text>
-<text class="ns" x="960" y="334.5" text-anchor="middle">db.t4g.micro, 1 AZ</text>
-<text class="ns" x="960" y="349.5" text-anchor="middle">KMS, daily backups</text>
-<rect class="n n-plan" x="230" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="285" y="517" text-anchor="middle">Budgets</text>
-<text class="ns" x="285" y="533" text-anchor="middle">alarms $50, $100</text>
-<rect class="n n-plan" x="350" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="405" y="517" text-anchor="middle">GuardDuty</text>
-<text class="ns" x="405" y="533" text-anchor="middle">threat alerts</text>
-<rect class="n n-plan" x="470" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="525" y="517" text-anchor="middle">CloudTrail</text>
-<text class="ns" x="525" y="533" text-anchor="middle">API audit log</text>
-<rect class="n n-plan" x="590" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="645" y="517" text-anchor="middle">CloudWatch</text>
-<text class="ns" x="645" y="533" text-anchor="middle">logs kept 180 d</text>
-<rect class="n n-plan" x="710" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="765" y="517" text-anchor="middle">Secrets Mgr</text>
-<text class="ns" x="765" y="533" text-anchor="middle">WhatsApp, Razorpay</text>
-<rect class="n n-plan" x="830" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="885" y="517" text-anchor="middle">KMS</text>
-<text class="ns" x="885" y="533" text-anchor="middle">encryption keys</text>
-<rect class="n n-plan" x="950" y="490" width="110" height="62" rx="8"/>
-<text class="nt" x="1005" y="517" text-anchor="middle">ECR</text>
-<text class="ns" x="1005" y="533" text-anchor="middle">image registry</text>
+<rect class="n n-plan" x="220" y="160" width="150" height="84" rx="8"/>
+<text class="nt" x="295" y="183" text-anchor="middle">CloudFront + WAF</text>
+<text class="ns" x="295" y="199" text-anchor="middle">HTTPS, HSTS</text>
+<text class="ns" x="295" y="214" text-anchor="middle">OWASP rules, India</text>
+<text class="ns" x="295" y="229" text-anchor="middle">only, rate limits</text>
+<rect class="n n-plan" x="465" y="165" width="140" height="74" rx="8"/>
+<text class="nt" x="535" y="190.5" text-anchor="middle">Load balancer</text>
+<text class="ns" x="535" y="206.5" text-anchor="middle">CloudFront IPs only</text>
+<text class="ns" x="535" y="221.5" text-anchor="middle">needs origin secret</text>
+<rect class="n n-plan" x="660" y="165" width="165" height="74" rx="8"/>
+<text class="nt" x="742.5" y="190.5" text-anchor="middle">Fargate: web app</text>
+<text class="ns" x="742.5" y="206.5" text-anchor="middle">0.25 vCPU ARM</text>
+<text class="ns" x="742.5" y="221.5" text-anchor="middle">read-only filesystem</text>
+<rect class="n n-plan" x="220" y="310" width="150" height="74" rx="8"/>
+<text class="nt" x="295" y="335.5" text-anchor="middle">EventBridge</text>
+<text class="ns" x="295" y="351.5" text-anchor="middle">Scheduler</text>
+<text class="ns" x="295" y="366.5" text-anchor="middle">09:30 Asia/Kolkata</text>
+<rect class="n n-plan" x="660" y="310" width="165" height="74" rx="8"/>
+<text class="nt" x="742.5" y="335.5" text-anchor="middle">Fargate: daily job</text>
+<text class="ns" x="742.5" y="351.5" text-anchor="middle">one-off task</text>
+<text class="ns" x="742.5" y="366.5" text-anchor="middle">run-reminders</text>
+<rect class="n n-plan" x="870" y="215" width="160" height="100" rx="8"/>
+<text class="nt" x="950" y="246" text-anchor="middle">RDS PostgreSQL 16</text>
+<text class="ns" x="950" y="262" text-anchor="middle">db.t4g.micro, 1 AZ</text>
+<text class="ns" x="950" y="277" text-anchor="middle">encrypted, TLS forced</text>
+<text class="ns" x="950" y="292" text-anchor="middle">7-day backups + PITR</text>
+<rect class="n n-plan" x="230" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="285" y="522" text-anchor="middle">Budgets</text>
+<text class="ns" x="285" y="538" text-anchor="middle">email at 50%, 100%</text>
+<rect class="n n-plan" x="350" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="405" y="522" text-anchor="middle">GuardDuty</text>
+<text class="ns" x="405" y="538" text-anchor="middle">medium+ by email</text>
+<rect class="n n-plan" x="470" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="525" y="522" text-anchor="middle">CloudTrail</text>
+<text class="ns" x="525" y="538" text-anchor="middle">API audit log</text>
+<rect class="n n-plan" x="590" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="645" y="522" text-anchor="middle">CloudWatch</text>
+<text class="ns" x="645" y="538" text-anchor="middle">logs kept 365 d</text>
+<rect class="n n-plan" x="710" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="765" y="522" text-anchor="middle">SSM Params</text>
+<text class="ns" x="765" y="538" text-anchor="middle">secrets, encrypted</text>
+<rect class="n n-plan" x="830" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="885" y="522" text-anchor="middle">ECR</text>
+<text class="ns" x="885" y="538" text-anchor="middle">image registry</text>
+<rect class="n n-plan" x="950" y="495" width="110" height="62" rx="8"/>
+<text class="nt" x="1005" y="522" text-anchor="middle">S3</text>
+<text class="ns" x="1005" y="538" text-anchor="middle">ALB + trail logs</text>
 <text class="el el-edge" x="176" y="352" text-anchor="start">HTTPS</text>
-<text class="el el-edge" x="415" y="192" text-anchor="middle">HTTPS</text>
-<text class="el el-edge" x="625" y="192" text-anchor="middle">invoke</text>
-<text class="el el-edge" x="625" y="329" text-anchor="middle">invoke</text>
-<text class="el el-edge" x="920" y="72" text-anchor="middle">HTTPS out, no NAT gateway</text>
-<text class="el el-warn" x="850" y="187" text-anchor="middle">?</text>
-<text class="el el-warn" x="842" y="300" text-anchor="end">?</text>
-<text class="el el-edge" x="968" y="262" text-anchor="start">TLS</text>
-<text class="el el-edge" x="743" y="450" text-anchor="start">reads keys</text>
-<text class="el el-edge" x="908" y="450" text-anchor="start">encrypts</text>
-<text class="tx tx-banner" x="220" y="62" text-anchor="start">PLANNED · NOT BUILT YET</text>
-<text class="tx tx-band" x="230" y="470" text-anchor="start">Security and operations (account-wide)</text>
-<text class="tx tx-warnnote" x="440" y="412" text-anchor="start">? open decision for M5: how Lambda</text>
-<text class="tx tx-warnnote" x="440" y="427" text-anchor="start">reaches the database without a NAT</text>
-<text class="tx tx-warnnote" x="440" y="442" text-anchor="start">gateway (see tech spec §7)</text>
+<text class="el el-edge" x="418" y="188" text-anchor="middle">HTTPS +</text>
+<text class="el el-edge" x="418" y="202" text-anchor="middle">origin secret</text>
+<text class="el el-edge" x="632" y="194" text-anchor="middle">:8000</text>
+<text class="el el-edge" x="515" y="339" text-anchor="middle">starts task</text>
+<text class="el el-edge" x="930" y="72" text-anchor="middle">outbound via task public IP, no NAT gateway</text>
+<text class="el el-edge" x="842" y="196" text-anchor="end">TLS</text>
+<text class="el el-edge" x="750" y="470" text-anchor="start">reads secrets</text>
+<text class="tx tx-banner" x="220" y="62" text-anchor="start">TERRAFORM WRITTEN · NOT APPLIED YET</text>
+<text class="tx tx-band" x="230" y="478" text-anchor="start">Security and operations (account-wide)</text>
+<text class="tx tx-note" x="230" y="440" text-anchor="start">Only CloudFront is public. App tasks accept traffic from the load balancer only;</text>
+<text class="tx tx-note" x="230" y="455" text-anchor="start">the database has no internet route at all.</text>
 </svg>

@@ -41,7 +41,7 @@ Three facts make a simple tool useful:
 |---|---|---|
 | BO-1 | Help merchants get paid sooner with less effort | Beta merchants report less time spent chasing payments; share of reminded invoices paid within 15 days of due date |
 | BO-2 | Validate that MSMEs will pay a monthly fee for this | At least a few beta merchants convert from trial to a paid plan |
-| BO-3 | Stay low-risk and low-cost to run | Hosting at or under about $50–150 a month for the beta; no handling of customer money |
+| BO-3 | Stay low-risk and low-cost to run | Hosting around $70–82 a month for the beta (M5 estimate); no handling of customer money |
 | BO-4 | Serve as a real, secure, well-tested portfolio project | Launch gates in PLAN.md pass (tests, scans, tenant isolation, backups, incident runbook) |
 
 Making money is secondary to BO-4 for the owner. The product should still be run as if it were a
@@ -75,7 +75,7 @@ real business, because that is what makes it a credible learning project.
 | S-8 | Merchant dashboard with sign-in by a code sent on WhatsApp | Built |
 | S-9 | Monthly subscription for PayRemind's own fee via Razorpay, with GST invoices | Built; needs Razorpay account |
 | S-10 | Draft privacy policy, terms and data processing agreement | Drafts written; need a lawyer |
-| S-11 | Hosting on AWS in Mumbai (ap-south-1) | Planned for M5, not built |
+| S-11 | Hosting on AWS in Mumbai (ap-south-1) | Terraform written (M5); not applied |
 
 ### 5.2 Out of scope for the beta
 
@@ -111,7 +111,7 @@ real business, because that is what makes it a credible learning project.
 | Opt-out rate | Low; a rising rate means messages feel like spam |
 | Paid within 15 days of due date | Higher than the merchant's own baseline (ask them) |
 | Trial to paid conversion | At least a few conversions |
-| Monthly hosting cost | Within the $50–150 budget, alarms at $50 and $100 |
+| Monthly hosting cost | Near the ~$70–82 estimate; budget alerts at 50% and 100% of $100 |
 | Security incidents | None; any incident handled within the 6-hour CERT-In window |
 
 ## 8. Assumptions
@@ -126,7 +126,7 @@ real business, because that is what makes it a credible learning project.
 ## 9. Constraints
 
 - Built in Python by one person at 30–60 minutes a day.
-- Low running cost; no NAT gateways or always-on servers unless they are needed.
+- Low running cost; no NAT gateway. The M5 estimate is about $70–82 a month.
 - Data hosted in India (ap-south-1).
 - WhatsApp business-initiated messages must use approved templates and cost money per message.
   **⚖ Verify** current Meta pricing for utility and authentication messages in India.

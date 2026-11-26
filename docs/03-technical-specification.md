@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Product | PayRemind |
-| Version | 0.1 (code at milestone M4; AWS section is a plan) |
+| Version | 0.1 (app at milestone M4; AWS section describes M5 Terraform, not applied) |
 | Date | 26 Nov 2026 |
 | Related | [SRS](02-system-requirements.md) · [Data model](04-data-model.md) · [Security](06-security-and-compliance.md) |
 
@@ -138,66 +138,70 @@ All settings are environment variables with the `PAYREMIND_` prefix (see `.env.e
 | `RAZORPAY_PLAN_STARTER`, `RAZORPAY_PLAN_GROWTH` | Plan ids from the Razorpay dashboard | No |
 | `SUPPLIER_NAME`, `SUPPLIER_GSTIN`, `SUPPLIER_STATE_CODE`, `SUPPLIER_ADDRESS` | PayRemind's details on GST invoices | No |
 | `MAX_UPLOAD_BYTES`, `MAX_IMPORT_ROWS` | Import limits (5 MB, 5,000 rows) | No |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | On AWS, used instead of `DATABASE_URL` (TLS required) | Password yes |
 
 ## 6. Build, test and release
 
 - `make install`, `make check` (ruff, format check, mypy strict, bandit, pip-audit), `make test`.
-- CI (GitHub Actions) runs the same on every push and pull request, with read-only permissions.
+- CI (GitHub Actions) runs the same on every push and pull request, with read-only permissions, plus an `infra` job: `terraform fmt`, `validate`, `test` and Checkov.
 - Tests run on SQLite by default; set `PAYREMIND_TEST_DATABASE_URL` to run them on PostgreSQL.
 - `Dockerfile`: `python:3.13-slim`, installs the package, runs as non-root user `app` (uid 10001),
-  starts Uvicorn on port 8000. Run `payremind migrate` before starting a new version.
+  starts Uvicorn on port 8000 with proxy headers trusted only from the VPC range. Run `payremind migrate` before starting a new version.
 - Branching: feature branches and pull requests into `main`; one PR per milestone so far.
 
-## 7. Planned AWS deployment (M5, not built)
+## 7. AWS deployment (M5: Terraform written, not applied)
 
-> Nothing in this section exists yet. Creating any AWS resource needs Hari's go-ahead.
+> The Terraform in `infra/terraform` describes every resource below, and CI checks it offline
+> (`terraform validate`, `terraform test` with a mocked plan, Checkov). **Nothing has been
+> applied.** Running `terraform apply` needs Hari's go-ahead. The full runbook and cost table are
+> in [infra/README.md](../infra/README.md).
 
-![Planned AWS deployment](diagrams/04-aws-planned.svg)
+![AWS deployment](diagrams/04-aws-planned.svg)
 
-| Concern | Plan (from PLAN.md) |
+| Concern | Design in the Terraform |
 |---|---|
-| Region | ap-south-1 (Mumbai), single account |
-| Edge | CloudFront with AWS WAF; WAF rate rule on `/login` and `/login/verify` per IP |
-| Compute | Lambda from a container image (ECR), FastAPI wrapped with Mangum, behind API Gateway HTTP API |
-| Daily job | EventBridge Scheduler, timezone Asia/Kolkata, 09:30, invokes a Lambda running `run-reminders` |
-| Database | RDS PostgreSQL `db.t4g.micro`, single-AZ for beta, KMS encryption, automated backups |
-| Secrets | Secrets Manager for WhatsApp and Razorpay keys and `SECRET_KEY` |
-| Logging and detection | CloudWatch Logs kept 180 days, CloudTrail, GuardDuty |
-| Cost | Target $50–150 a month; AWS Budgets alarms at $50 and $100 |
-| IaC | Terraform |
+| Region | ap-south-1 (Mumbai), one account |
+| Edge | CloudFront with HSTS and AWS WAF: IP reputation list, OWASP common rules, known bad inputs, India-only except `/webhooks/`, 20 login requests per IP per 5 minutes, global rate limit |
+| Origin protection | The load balancer accepts only CloudFront's IP ranges and returns 403 without a secret `X-Origin-Verify` header |
+| Compute | ECS Fargate, ARM (Graviton), 0.25 vCPU and 0.5 GB, read-only root filesystem; Uvicorn trusts forwarded headers only from inside the VPC |
+| Network | VPC 10.20.0.0/16. App tasks in public subnets with a public IP for outbound calls only; their security group accepts traffic from the load balancer only. Database in private subnets with no internet route. No NAT gateway (saves roughly $35 a month) |
+| Daily job | EventBridge Scheduler, `cron(30 9 * * ? *)` in Asia/Kolkata, starts a one-off Fargate task running `payremind run-reminders`. Off until templates are approved (`reminders_enabled`) |
+| Database | RDS PostgreSQL 16, `db.t4g.micro`, single-AZ, encrypted, TLS forced (`sslmode=require`), 7-day backups with point-in-time restore, deletion protection |
+| Secrets | SSM Parameter Store SecureString under `/payremind/<env>/`. Terraform generates `secret_key`, the WhatsApp verify token and the origin secret; real API keys are entered by hand with the AWS CLI. The database password is managed and rotated by RDS |
+| Configuration | The app builds its database URL from `PAYREMIND_DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`; parameters still holding the placeholder `unset` are treated as empty |
+| Logging and detection | App logs and VPC flow logs (rejects) in CloudWatch for 365 days; load balancer access logs and CloudTrail in S3 for 365 days; GuardDuty findings of medium and above, and budget alerts, by email |
+| Cost | About $70–82 a month for low beta traffic; budget alert at 50% and 100% of $100 |
+| Deploys | Push an ARM64 image to ECR, then `terraform apply -var image_tag=<sha>`; ECS rolls back if health checks fail. Migrations run as a one-off task |
 
-### 7.1 Open decision: reaching the database without a NAT gateway
+### 7.1 Decision record: how the app reaches both the database and the internet
 
-The plan wants no NAT gateway, to save money. That creates a real constraint:
+**Problem.** The app and the daily job need the private database and also Meta's and Razorpay's
+public APIs. The usual answer, a NAT gateway, costs roughly $35–40 a month before data charges.
 
-- A Lambda **outside** a VPC can call Meta and Razorpay over the internet, but cannot reach a
-  database in private subnets (RDS Proxy is also VPC-only).
-- A Lambda **inside** a VPC can reach the database, but has no internet access without a NAT
-  gateway or another egress path.
+**Options considered.** Managed NAT gateway; a NAT instance; IPv6 egress-only gateway;
+splitting the job with a queue; Aurora with the Data API; a public database endpoint (rejected);
+running containers with a public IP in public subnets.
 
-The reminder job needs both: it reads the database and calls WhatsApp. Options to compare in M5,
-with the AWS pricing calculator (all prices below are rough and **need checking**):
+**Decision (M5 Terraform).** Run Fargate tasks in public subnets with a public IP, used only for
+outbound calls. The security group allows inbound traffic from the load balancer only, so the
+public IP does not expose the app. The database stays in private subnets with no route to the
+internet. The original plan's Lambda + API Gateway design was replaced by Fargate + a load
+balancer, which avoids the Lambda-in-VPC egress problem and runs the app unchanged.
 
-| Option | How it works | Cost and effort | Security notes |
-|---|---|---|---|
-| A. Managed NAT gateway | Lambda in private subnets, NAT gateway in a public subnet | Simplest; roughly $40+ a month plus data processing in Mumbai | Standard pattern; easy to explain in interviews |
-| B. NAT instance | A tiny EC2 instance (for example t4g.nano with an open-source NAT image) instead of the managed gateway | A few dollars a month; you patch and monitor it | One more server to harden; a good networking exercise |
-| C. IPv6 egress-only gateway | Dual-stack subnets; Lambda reaches IPv6 endpoints through a free egress-only internet gateway | Cheap, but **only works if Meta's and Razorpay's API hosts support IPv6**; verify first | Outbound-only by design |
-| D. Split the job with a queue | A VPC Lambda reads the database and puts messages on SQS; a non-VPC Lambda sends them and reports results back | SQS VPC endpoint costs money; more moving parts | Clean separation of database and internet access |
-| E. Aurora Serverless v2 with the Data API | Lambda stays outside the VPC and talks to the database over HTTPS with IAM | Needs a different SQLAlchemy driver and some code changes; check minimum cost | No database port exposed at all |
-| F. Public RDS endpoint | Database reachable from the internet with TLS and strong credentials | Cheap | **Not recommended**: Lambda has no fixed IPs, so the firewall cannot be tight |
+**Trade-offs.** Each public IPv4 address costs about $3.60 a month; the load balancer and its IPs
+are the biggest cost line (~$30). A misconfigured security group would expose the task directly,
+so the rule is tested in `terraform test` and checked by Checkov. Other accepted beta trade-offs
+(single-AZ database, AWS-managed keys, sampled WAF logs) are listed with reasons in
+`infra/terraform/.checkov.yaml`.
 
-**Suggested starting point:** compare A and B on cost; if Meta and Razorpay both support IPv6,
-C is the cheapest clean answer. Record the choice as an architecture decision in this document.
+### 7.2 Remaining infrastructure items
 
-### 7.2 Other M5 items
-
-- `SECRET_KEY` must come from Secrets Manager; add a start-up check that refuses to run in
-  production without it.
-- Lambda should load secrets once per cold start, not per request.
-- Add structured JSON logging (request id, tenant id, route, status, no personal data) so
-  CloudWatch can be searched during an incident. The app has no logging today.
-- Health check `/health` for monitoring.
+- Apply the Terraform (after Hari approves), set the real secrets, push the first image, migrate,
+  invite the first business, then switch the daily job on.
+- Add structured JSON logging to the app (request id, tenant id, route, status, no personal data)
+  so the 365-day CloudWatch logs are useful in an incident. The app logs nothing today.
+- Test a restore from an RDS snapshot; run OWASP ZAP against the beta URL.
+- Reconsider Multi-AZ and customer-managed keys before public launch.
 
 ## 8. Known technical gaps (found while writing)
 
@@ -212,4 +216,4 @@ C is the cheapest clean answer. Record the choice as an architecture decision in
 | G-7 | No opt-in (START) after STOP | Handle START in the webhook |
 | G-8 | No partial payments; mark-paid sets balance to zero | `POST /invoices/{id}/payments` with an amount |
 | G-9 | No data export or delete for a merchant, although the DPA promises help | Operator CLI first, then a dashboard button |
-| G-10 | `SECRET_KEY` silently falls back to a random value | Fail fast when unset outside development |
+| G-10 | `SECRET_KEY` silently falls back to a random value (Terraform now supplies one on AWS, but nothing stops a deploy without it) | Fail fast when unset outside development |

@@ -178,7 +178,7 @@ the DPDP Act and Rules and the merchant DPA (**⚖ Verify**):
 | Paid invoices, promises, reminder log | Keep while the merchant is active; delete within 30 days of the merchant leaving (as the DPA draft says) |
 | Opt-outs | Keep indefinitely (needed to keep honouring STOP) |
 | Billing invoices | Keep for the period GST law requires for tax records. **⚖ Verify** the period with a CA |
-| Security logs (M5) | 180 days. **⚖ Verify** CERT-In directions |
+| Security logs (M5 Terraform) | 365 days (CERT-In asks for at least 180). **⚖ Verify** CERT-In directions |
 
 ## 6. Changing the schema
 

@@ -59,7 +59,7 @@ customer's UPI app. See the [system context diagram](diagrams/01-system-context.
 | FR-AU-5 | Codes must be stored only as keyed HMAC-SHA256 hashes; session tokens only as SHA-256 hashes. | Built | — |
 | FR-AU-6 | Sessions must last 7 days, use an HttpOnly, Secure, SameSite=Lax cookie, and end on logout. | Built | test_auth_web |
 | FR-AU-7 | Every state-changing dashboard form must carry the session's CSRF token, compared in constant time. | Built | test_auth_web |
-| FR-AU-8 | Sign-in attempts should also be rate-limited per IP address. | Planned (M5, WAF rule) | — |
+| FR-AU-8 | Sign-in attempts should also be rate-limited per IP address. | Planned (Terraform written, not applied: WAF limit of 20 requests per IP per 5 min on login) | — |
 | FR-AU-9 | Expired codes and sessions should be deleted periodically. | Gap | — |
 
 ### 3.3 Import
@@ -97,7 +97,7 @@ customer's UPI app. See the [system context diagram](diagrams/01-system-context.
 | FR-RM-6 | Each reminder must use the approved template `payment_reminder_v1` with four values: customer name, invoice number, amount in ₹, pay page link. | Built | test_whatsapp |
 | FR-RM-7 | The daily job (`payremind run-reminders`) must run for every business in good standing and report businesses, sent and failed. | Built | test_api |
 | FR-RM-8 | A failed send must be counted and retried on the next run (it is not logged as sent). | Built | test_api |
-| FR-RM-9 | The daily job must run automatically at 09:30 IST. | Planned (M5, EventBridge Scheduler) | — |
+| FR-RM-9 | The daily job must run automatically at 09:30 IST. | Planned (Terraform written, not applied: EventBridge Scheduler starts a one-off Fargate task) | — |
 | FR-RM-10 | A merchant must be able to trigger "send due reminders now"; it must obey the same rules. | Built | test_api, test_auth_web |
 
 ```mermaid
@@ -167,17 +167,17 @@ flowchart TD
 
 | ID | Category | Requirement | Status |
 |---|---|---|---|
-| NFR-1 | Security | All traffic must use HTTPS in production; cookies must be Secure. | Built in app; TLS at CloudFront planned (M5) |
+| NFR-1 | Security | All traffic must use HTTPS in production; cookies must be Secure. | Built in app; HTTPS + HSTS at CloudFront and TLS to the database (Terraform written, not applied) |
 | NFR-2 | Security | One business must never read, change or message another business's data. Tenant-isolation tests must pass 100%. | Built (test_tenant_isolation) |
 | NFR-3 | Security | CI must pass ruff, mypy strict, bandit and pip-audit; CodeQL/Semgrep and OWASP ZAP must show no open high or critical issues before launch. | Partial: first four in CI; scans planned |
 | NFR-4 | Quality | Test coverage must stay at or above 80% (currently about 99% overall). | Built (CI gate) |
-| NFR-5 | Privacy | Data must be stored in India (ap-south-1) and encrypted at rest. | Planned (M5) |
-| NFR-6 | Logging | Security-relevant logs must be kept 180 days. **⚖ Verify** CERT-In requirements. | Planned (M5); the app has no structured logging yet (gap) |
+| NFR-5 | Privacy | Data must be stored in India (ap-south-1) and encrypted at rest. | Planned (Terraform written, not applied) |
+| NFR-6 | Logging | Security-relevant logs must be kept at least 180 days. **⚖ Verify** CERT-In requirements. | Planned (Terraform written, not applied: 365 days); the app itself has no structured logging yet (gap) |
 | NFR-7 | Availability | Beta target: the dashboard is usually available; the daily job completes every day. No formal SLA. | Planned |
 | NFR-8 | Performance | The daily job should finish within a few minutes for 20 businesses × 5,000 invoices. Load-test before launch. | Planned (launch gate) |
-| NFR-9 | Recovery | Automated daily backups; a restore must be tested before launch. Target RPO 24 hours, RTO 4 hours for the beta. | Planned (M5) |
+| NFR-9 | Recovery | Automated backups; a restore must be tested before launch. Target RPO 24 hours, RTO 4 hours for the beta. | Planned (Terraform written, not applied: 7-day backups with point-in-time restore) |
 | NFR-10 | Incident response | A runbook must make it possible to report a reportable incident to CERT-In within 6 hours. **⚖ Verify** | Planned (launch gate) |
-| NFR-11 | Cost | Monthly AWS cost for the beta should be $50–150, with budget alarms at $50 and $100. | Planned (M5) |
+| NFR-11 | Cost | Monthly AWS cost for the beta should stay near the ~$70–82 estimate, with budget alerts at 50% and 100% of $100. | Planned (Terraform written, not applied) |
 | NFR-12 | Usability | The dashboard must work on a phone browser without JavaScript builds; Hindi and English for reminders. | Built |
 | NFR-13 | Maintainability | Schema changes must go through Alembic migrations, tested up and down. | Built (test_migrations) |
 | NFR-14 | Portability | The app must run locally with SQLite and no outside accounts (fake WhatsApp and Razorpay adapters). | Built |

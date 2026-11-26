@@ -4,7 +4,7 @@ PayRemind sends WhatsApp payment reminders for Indian MSMEs. A merchant uploads 
 list of unpaid invoices, PayRemind works out what is overdue, and it sends polite reminders with a
 link that pays the merchant's own UPI ID. PayRemind never holds money.
 
-These documents describe the code on `main` as of milestone M4 (26 Nov 2026). Each one says
+These documents describe the code on `main` as of 26 Nov 2026: the app at milestone M4 plus the M5 Terraform for AWS, which is written but not applied. Each one says
 which parts are **built**, which are **planned**, and which are **gaps** found while writing it.
 
 | Document | What it answers | Read it if you are… |
@@ -16,6 +16,7 @@ which parts are **built**, which are **planned**, and which are **gaps** found w
 | [API and routes](05-api-reference.md) | Every HTTP route and CLI command | integrating or testing |
 | [Security and compliance](06-security-and-compliance.md) | Threats, controls, gaps, and the legal items to verify | reviewing risk |
 | [Launch checklist](07-launch-checklist.md) | What must be true before beta and before public launch | planning the next weeks |
+| [AWS infrastructure and runbook](../infra/README.md) | Terraform layout, cost estimate (~$70–82/month), deploy steps | deploying |
 
 ## Diagrams
 
@@ -27,7 +28,7 @@ Five diagrams live in [`diagrams/`](diagrams/). Each has an `.svg` (for viewing 
 | [System context](diagrams/01-system-context.svg) | Who PayRemind talks to, and that money goes straight to the merchant |
 | [Components](diagrams/02-components.svg) | How the Python modules are layered |
 | [Upload to payment](diagrams/03-data-flow.svg) | The life of one invoice, in 13 numbered steps |
-| [Planned AWS deployment](diagrams/04-aws-planned.svg) | The M5 target in ap-south-1. **Not built yet** |
+| [Planned AWS deployment](diagrams/04-aws-planned.svg) | The M5 Terraform in ap-south-1. **Written, not applied** |
 | [Trust boundaries](diagrams/05-trust-boundaries.svg) | Where untrusted input enters and what checks it |
 
 All five come from [`diagrams/build.py`](diagrams/build.py). Change the coordinates or labels
