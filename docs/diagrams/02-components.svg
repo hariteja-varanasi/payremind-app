@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1070 696" width="1070" height="696" role="img" aria-label="Components">
+<style>
+.canvas{fill:#ffffff}
+text{font-family:'IBM Plex Sans', 'Segoe UI', Helvetica, Arial, sans-serif;fill:#1d2733}
+.nt{font-size:13px;font-weight:600}
+.nt.mono{font-family:'IBM Plex Mono',Menlo,Consolas,monospace;font-size:12px}
+.ns{font-size:11px;fill:#5b6878}
+.n{stroke-width:1.4}
+.n-core{fill:#e3f3ef;stroke:#0f766e}
+.n-ext{fill:#f2f4f7;stroke:#64748b}
+.n-person{fill:#fff5e0;stroke:#b7791f}
+.n-plan{fill:#edf3ff;stroke:#3b6fd8;stroke-dasharray:5 3}
+.z{fill:#f7f9fb;stroke:#9aa8b8;stroke-width:1;stroke-dasharray:4 4}
+.z-plan{fill:none;stroke:#3b6fd8;stroke-width:1.4}
+.z-warn{stroke:#c2410c}
+.zl{font-size:12px;font-weight:600;fill:#5b6878;letter-spacing:.02em}
+.zl-plan{fill:#3b6fd8}
+.zl-warn{fill:#c2410c}
+.e{fill:none;stroke:#4b5868;stroke-width:1.4}
+.e-money{stroke:#15803d;stroke-width:2.2}
+.e-warn{stroke:#c2410c}
+.dash{stroke-dasharray:5 4}
+.ah{fill:#4b5868}
+.ah-money{fill:#15803d}
+.ah-warn{fill:#c2410c}
+.el{font-size:11px;fill:#1d2733;paint-order:stroke;stroke:#ffffff;stroke-width:4px;
+stroke-linejoin:round}
+.el-money{fill:#15803d;font-weight:600}
+.el-warn{fill:#c2410c;font-weight:600}
+.badge{fill:#1d2733}
+.badge-t{font-size:11px;font-weight:700;fill:#ffffff}
+.tx-band{font-size:12px;font-weight:600;fill:#5b6878;letter-spacing:.03em}
+.tx-note{font-size:12px;fill:#5b6878}
+.tx-banner{font-size:13px;font-weight:700;fill:#3b6fd8;letter-spacing:.08em}
+.tx-warnnote{font-size:11px;fill:#c2410c}
+</style>
+<defs>
+<marker id="a02" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="m02" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-money" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="w02" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-warn" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="1070" height="696"/>
+<rect class="z z-zone" x="16" y="12" width="1038" height="86" rx="10"/>
+<rect class="z z-zone" x="16" y="116" width="1038" height="102" rx="10"/>
+<rect class="z z-zone" x="16" y="236" width="1038" height="102" rx="10"/>
+<rect class="z z-zone" x="16" y="356" width="1038" height="90" rx="10"/>
+<rect class="z z-zone" x="16" y="464" width="1038" height="90" rx="10"/>
+<rect class="z z-zone" x="16" y="572" width="1038" height="82" rx="10"/>
+<polyline class="e e-edge" points="217.714,90 243.2,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="345.143,90 421.6,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="472.571,90 600,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="600,90 778.4,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="727.429,90 778.4,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="854.857,90 956.8,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="982.286,90 956.8,124" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="302.667,546 302.667,580" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="600,546 600,580" marker-end="url(#a02)"/>
+<polyline class="e e-edge" points="897.333,546 897.333,580" marker-end="url(#a02)"/>
+<rect class="n n-person" x="160" y="20" width="115.429" height="70" rx="14"/>
+<text class="nt" x="217.714" y="51" text-anchor="middle">Merchant</text>
+<text class="ns" x="217.714" y="67" text-anchor="middle">browser</text>
+<rect class="n n-person" x="287.429" y="20" width="115.429" height="70" rx="14"/>
+<text class="nt" x="345.143" y="51" text-anchor="middle">Script</text>
+<text class="ns" x="345.143" y="67" text-anchor="middle">curl / API client</text>
+<rect class="n n-person" x="414.857" y="20" width="115.429" height="70" rx="14"/>
+<text class="nt" x="472.571" y="51" text-anchor="middle">Customer</text>
+<text class="ns" x="472.571" y="67" text-anchor="middle">phone browser</text>
+<rect class="n n-ext" x="542.286" y="20" width="115.429" height="70" rx="8"/>
+<text class="nt" x="600" y="51" text-anchor="middle">Meta</text>
+<text class="ns" x="600" y="67" text-anchor="middle">webhook</text>
+<rect class="n n-ext" x="669.714" y="20" width="115.429" height="70" rx="8"/>
+<text class="nt" x="727.429" y="51" text-anchor="middle">Razorpay</text>
+<text class="ns" x="727.429" y="67" text-anchor="middle">webhook</text>
+<rect class="n n-ext" x="797.143" y="20" width="115.429" height="70" rx="8"/>
+<text class="nt" x="854.857" y="51" text-anchor="middle">Scheduler</text>
+<text class="ns" x="854.857" y="67" text-anchor="middle">daily, 09:30 IST</text>
+<rect class="n n-person" x="924.571" y="20" width="115.429" height="70" rx="14"/>
+<text class="nt" x="982.286" y="51" text-anchor="middle">Operator</text>
+<text class="ns" x="982.286" y="67" text-anchor="middle">shell</text>
+<rect class="n n-core" x="160" y="124" width="166.4" height="86" rx="8"/>
+<text class="nt mono" x="243.2" y="155.5" text-anchor="middle">api/web.py</text>
+<text class="ns" x="243.2" y="171.5" text-anchor="middle">Dashboard /app/*</text>
+<text class="ns" x="243.2" y="186.5" text-anchor="middle">cookie session + CSRF</text>
+<rect class="n n-core" x="338.4" y="124" width="166.4" height="86" rx="8"/>
+<text class="nt mono" x="421.6" y="155.5" text-anchor="middle">api/app.py</text>
+<text class="ns" x="421.6" y="171.5" text-anchor="middle">REST API</text>
+<text class="ns" x="421.6" y="186.5" text-anchor="middle">bearer token</text>
+<rect class="n n-core" x="516.8" y="124" width="166.4" height="86" rx="8"/>
+<text class="nt mono" x="600" y="155.5" text-anchor="middle">pay page /p/{token}</text>
+<text class="ns" x="600" y="171.5" text-anchor="middle">public, read-only</text>
+<text class="ns" x="600" y="186.5" text-anchor="middle">UPI button + QR</text>
+<rect class="n n-core" x="695.2" y="124" width="166.4" height="86" rx="8"/>
+<text class="nt mono" x="778.4" y="155.5" text-anchor="middle">webhooks</text>
+<text class="ns" x="778.4" y="171.5" text-anchor="middle">/webhooks/whatsapp</text>
+<text class="ns" x="778.4" y="186.5" text-anchor="middle">/webhooks/razorpay</text>
+<rect class="n n-core" x="873.6" y="124" width="166.4" height="86" rx="8"/>
+<text class="nt mono" x="956.8" y="155.5" text-anchor="middle">cli.py</text>
+<text class="ns" x="956.8" y="171.5" text-anchor="middle">invite · add-user</text>
+<text class="ns" x="956.8" y="186.5" text-anchor="middle">migrate · run-reminders</text>
+<rect class="n n-core" x="160" y="244" width="211" height="86" rx="8"/>
+<text class="nt mono" x="265.5" y="275.5" text-anchor="middle">services.py</text>
+<text class="ns" x="265.5" y="291.5" text-anchor="middle">invoices, promises, reminders</text>
+<text class="ns" x="265.5" y="306.5" text-anchor="middle">every query tenant-scoped</text>
+<rect class="n n-core" x="383" y="244" width="211" height="86" rx="8"/>
+<text class="nt mono" x="488.5" y="275.5" text-anchor="middle">auth.py</text>
+<text class="ns" x="488.5" y="291.5" text-anchor="middle">phone OTP sign-in</text>
+<text class="ns" x="488.5" y="306.5" text-anchor="middle">web sessions</text>
+<rect class="n n-core" x="606" y="244" width="211" height="86" rx="8"/>
+<text class="nt mono" x="711.5" y="275.5" text-anchor="middle">importers/excel.py</text>
+<text class="ns" x="711.5" y="291.5" text-anchor="middle">reads .xlsx / .csv</text>
+<text class="ns" x="711.5" y="306.5" text-anchor="middle">header aliases, row errors</text>
+<rect class="n n-core" x="829" y="244" width="211" height="86" rx="8"/>
+<text class="nt mono" x="934.5" y="275.5" text-anchor="middle">billing/service.py</text>
+<text class="ns" x="934.5" y="291.5" text-anchor="middle">plan status, trial gate</text>
+<text class="ns" x="934.5" y="306.5" text-anchor="middle">GST invoices</text>
+<rect class="n n-core" x="160" y="364" width="166.4" height="74" rx="8"/>
+<text class="nt mono" x="243.2" y="397" text-anchor="middle">core/schedule.py</text>
+<text class="ns" x="243.2" y="413" text-anchor="middle">which reminder today</text>
+<rect class="n n-core" x="338.4" y="364" width="166.4" height="74" rx="8"/>
+<text class="nt mono" x="421.6" y="397" text-anchor="middle">core/ageing.py</text>
+<text class="ns" x="421.6" y="413" text-anchor="middle">overdue buckets</text>
+<rect class="n n-core" x="516.8" y="364" width="166.4" height="74" rx="8"/>
+<text class="nt mono" x="600" y="397" text-anchor="middle">core/upi.py</text>
+<text class="ns" x="600" y="413" text-anchor="middle">upi://pay link</text>
+<rect class="n n-core" x="695.2" y="364" width="166.4" height="74" rx="8"/>
+<text class="nt mono" x="778.4" y="397" text-anchor="middle">core/phone.py</text>
+<text class="ns" x="778.4" y="413" text-anchor="middle">+91 normaliser</text>
+<rect class="n n-core" x="873.6" y="364" width="166.4" height="74" rx="8"/>
+<text class="nt mono" x="956.8" y="397" text-anchor="middle">billing/gst.py</text>
+<text class="ns" x="956.8" y="413" text-anchor="middle">CGST/SGST/IGST split</text>
+<rect class="n n-core" x="160" y="472" width="285.333" height="74" rx="8"/>
+<text class="nt mono" x="302.667" y="497.5" text-anchor="middle">messaging/whatsapp.py</text>
+<text class="ns" x="302.667" y="513.5" text-anchor="middle">Cloud API sender</text>
+<text class="ns" x="302.667" y="528.5" text-anchor="middle">or fake sender in dev</text>
+<rect class="n n-core" x="457.333" y="472" width="285.333" height="74" rx="8"/>
+<text class="nt mono" x="600" y="505" text-anchor="middle">billing/razorpay.py</text>
+<text class="ns" x="600" y="521" text-anchor="middle">subscriptions client</text>
+<rect class="n n-core" x="754.667" y="472" width="285.333" height="74" rx="8"/>
+<text class="nt mono" x="897.333" y="497.5" text-anchor="middle">models.py + db.py</text>
+<text class="ns" x="897.333" y="513.5" text-anchor="middle">SQLAlchemy, Alembic</text>
+<text class="ns" x="897.333" y="528.5" text-anchor="middle">migrations</text>
+<rect class="n n-ext" x="160" y="580" width="285.333" height="66" rx="8"/>
+<text class="nt" x="302.667" y="609" text-anchor="middle">Meta Graph API</text>
+<text class="ns" x="302.667" y="625" text-anchor="middle">WhatsApp messages</text>
+<rect class="n n-ext" x="457.333" y="580" width="285.333" height="66" rx="8"/>
+<text class="nt" x="600" y="609" text-anchor="middle">Razorpay API</text>
+<text class="ns" x="600" y="625" text-anchor="middle">our fee only</text>
+<rect class="n n-ext" x="754.667" y="580" width="285.333" height="66" rx="8"/>
+<text class="nt" x="897.333" y="609" text-anchor="middle">PostgreSQL</text>
+<text class="ns" x="897.333" y="625" text-anchor="middle">SQLite in local dev</text>
+<text class="el el-edge" x="310.667" y="567" text-anchor="start">HTTPS</text>
+<text class="el el-edge" x="608" y="567" text-anchor="start">HTTPS</text>
+<text class="el el-edge" x="905.333" y="567" text-anchor="start">SQL</text>
+<text class="tx tx-band" x="30" y="59" text-anchor="start">Who calls in</text>
+<text class="tx tx-band" x="30" y="171" text-anchor="start">Entry points</text>
+<text class="tx tx-band" x="30" y="291" text-anchor="start">Use cases</text>
+<text class="tx tx-band" x="30" y="405" text-anchor="start">Pure logic</text>
+<text class="tx tx-band" x="30" y="513" text-anchor="start">Adapters</text>
+<text class="tx tx-band" x="30" y="617" text-anchor="start">Outside services</text>
+<text class="tx tx-note" x="160" y="680" text-anchor="start">Each layer calls only the layers below it. Pure logic has no database or network access, so it is fully unit-tested.</text>
+</svg>

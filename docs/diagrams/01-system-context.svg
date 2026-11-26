@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 540" width="1040" height="540" role="img" aria-label="System context">
+<style>
+.canvas{fill:#ffffff}
+text{font-family:'IBM Plex Sans', 'Segoe UI', Helvetica, Arial, sans-serif;fill:#1d2733}
+.nt{font-size:13px;font-weight:600}
+.nt.mono{font-family:'IBM Plex Mono',Menlo,Consolas,monospace;font-size:12px}
+.ns{font-size:11px;fill:#5b6878}
+.n{stroke-width:1.4}
+.n-core{fill:#e3f3ef;stroke:#0f766e}
+.n-ext{fill:#f2f4f7;stroke:#64748b}
+.n-person{fill:#fff5e0;stroke:#b7791f}
+.n-plan{fill:#edf3ff;stroke:#3b6fd8;stroke-dasharray:5 3}
+.z{fill:#f7f9fb;stroke:#9aa8b8;stroke-width:1;stroke-dasharray:4 4}
+.z-plan{fill:none;stroke:#3b6fd8;stroke-width:1.4}
+.z-warn{stroke:#c2410c}
+.zl{font-size:12px;font-weight:600;fill:#5b6878;letter-spacing:.02em}
+.zl-plan{fill:#3b6fd8}
+.zl-warn{fill:#c2410c}
+.e{fill:none;stroke:#4b5868;stroke-width:1.4}
+.e-money{stroke:#15803d;stroke-width:2.2}
+.e-warn{stroke:#c2410c}
+.dash{stroke-dasharray:5 4}
+.ah{fill:#4b5868}
+.ah-money{fill:#15803d}
+.ah-warn{fill:#c2410c}
+.el{font-size:11px;fill:#1d2733;paint-order:stroke;stroke:#ffffff;stroke-width:4px;
+stroke-linejoin:round}
+.el-money{fill:#15803d;font-weight:600}
+.el-warn{fill:#c2410c;font-weight:600}
+.badge{fill:#1d2733}
+.badge-t{font-size:11px;font-weight:700;fill:#ffffff}
+.tx-band{font-size:12px;font-weight:600;fill:#5b6878;letter-spacing:.03em}
+.tx-note{font-size:12px;fill:#5b6878}
+.tx-banner{font-size:13px;font-weight:700;fill:#3b6fd8;letter-spacing:.08em}
+.tx-warnnote{font-size:11px;fill:#c2410c}
+</style>
+<defs>
+<marker id="a01" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="m01" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-money" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="w01" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-warn" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="canvas" x="0" y="0" width="1040" height="540"/>
+<polyline class="e e-edge" points="140,110 140,190" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="250,222 400,222" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="400,252 250,252" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="250,460 330,460 330,300 400,300" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="510,100 510,195" marker-end="url(#a01)" marker-start="url(#a01)"/>
+<polyline class="e e-edge" points="620,215 700,215 700,62 800,62" marker-end="url(#a01)"/>
+<polyline class="e e-edge dash" points="800,90 730,90 730,235 620,235" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="905,110 905,220" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="800,275 620,275" marker-end="url(#a01)"/>
+<polyline class="e e-edge" points="905,300 905,400" marker-end="url(#a01)"/>
+<polyline class="e e-money" points="800,435 710,435 710,475 620,475" marker-end="url(#m01)"/>
+<rect class="n n-ext" x="30" y="40" width="220" height="70" rx="8"/>
+<text class="nt" x="140" y="71" text-anchor="middle">Tally · Busy · Excel</text>
+<text class="ns" x="140" y="87" text-anchor="middle">accounting software</text>
+<rect class="n n-person" x="30" y="190" width="220" height="80" rx="22"/>
+<text class="nt" x="140" y="226" text-anchor="middle">Merchant (MSME)</text>
+<text class="ns" x="140" y="242" text-anchor="middle">owner or accountant</text>
+<rect class="n n-person" x="30" y="420" width="220" height="80" rx="22"/>
+<text class="nt" x="140" y="456" text-anchor="middle">PayRemind operator</text>
+<text class="ns" x="140" y="472" text-anchor="middle">invites businesses</text>
+<rect class="n n-core" x="400" y="195" width="220" height="130" rx="8"/>
+<text class="nt" x="510" y="241" text-anchor="middle">PayRemind</text>
+<text class="ns" x="510" y="257" text-anchor="middle">dashboard · API · daily job</text>
+<text class="ns" x="510" y="272" text-anchor="middle">stores invoices,</text>
+<text class="ns" x="510" y="287" text-anchor="middle">never holds money</text>
+<rect class="n n-ext" x="400" y="30" width="220" height="70" rx="8"/>
+<text class="nt" x="510" y="61" text-anchor="middle">Razorpay</text>
+<text class="ns" x="510" y="77" text-anchor="middle">collects our monthly fee</text>
+<rect class="n n-ext" x="400" y="440" width="220" height="70" rx="8"/>
+<text class="nt" x="510" y="471" text-anchor="middle">Merchant&#x27;s bank account</text>
+<text class="ns" x="510" y="487" text-anchor="middle">behind their own UPI ID</text>
+<rect class="n n-ext" x="800" y="30" width="210" height="80" rx="8"/>
+<text class="nt" x="905" y="66" text-anchor="middle">WhatsApp Cloud API</text>
+<text class="ns" x="905" y="82" text-anchor="middle">Meta</text>
+<rect class="n n-person" x="800" y="220" width="210" height="80" rx="22"/>
+<text class="nt" x="905" y="256" text-anchor="middle">Customer (buyer)</text>
+<text class="ns" x="905" y="272" text-anchor="middle">owes the merchant</text>
+<rect class="n n-ext" x="800" y="400" width="210" height="70" rx="8"/>
+<text class="nt" x="905" y="431" text-anchor="middle">Customer&#x27;s UPI app</text>
+<text class="ns" x="905" y="447" text-anchor="middle">GPay · PhonePe · Paytm</text>
+<text class="el el-edge" x="148" y="154" text-anchor="start">exports .xlsx / .csv</text>
+<text class="el el-edge" x="325" y="214" text-anchor="middle">uploads, marks paid</text>
+<text class="el el-edge" x="325" y="270" text-anchor="middle">overdue list, ageing</text>
+<text class="el el-edge" x="338" y="384" text-anchor="start">invite (CLI)</text>
+<text class="el el-edge" x="518" y="140" text-anchor="start">subscription,</text>
+<text class="el el-edge" x="518" y="154" text-anchor="start">payment webhooks</text>
+<text class="el el-edge" x="750" y="54" text-anchor="middle">send template</text>
+<text class="el el-edge" x="765" y="108" text-anchor="middle">STOP replies</text>
+<text class="el el-edge" x="913" y="160" text-anchor="start">reminder or</text>
+<text class="el el-edge" x="913" y="174" text-anchor="start">login code</text>
+<text class="el el-edge" x="710" y="293" text-anchor="middle">opens pay page link</text>
+<text class="el el-edge" x="913" y="354" text-anchor="start">taps Pay</text>
+<text class="el el-money" x="710" y="427" text-anchor="middle">₹ paid direct</text>
+</svg>
