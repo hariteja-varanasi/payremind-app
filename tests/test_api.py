@@ -50,7 +50,7 @@ def test_reminders_send_once_with_upi_link(client, auth, sender):
     assert r == {"sent": 2, "failed": 0}
     first = sender.sent[0]
     assert first.to_e164 == "+919845012345"
-    assert first.pay_link.startswith("upi://pay?pa=a@okaxis")
+    assert first.pay_link.startswith("https://pay.example.in/p/")
     assert first.amount_text == "₹1,000.00"
     assert client.post("/reminders/run", headers=auth["a"]).json()["sent"] == 0
 
@@ -108,6 +108,8 @@ def test_cli_invite(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("PAYREMIND_DATABASE_URL", f"sqlite:///{tmp_path}/c.db")
     get_settings.cache_clear()
     try:
+        main(["migrate"])
+        assert "up to date" in capsys.readouterr().out
         tenant_id, token = invite("X", "x@okaxis", "X")
         assert tenant_id == 1 and len(token) > 30
         main(["invite", "--name", "Y", "--upi", "y@okaxis", "--payee", "Y"])

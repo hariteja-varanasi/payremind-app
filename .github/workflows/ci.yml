@@ -5,6 +5,16 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: payremind
+          POSTGRES_PASSWORD: payremind
+          POSTGRES_DB: payremind_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -15,4 +25,9 @@ jobs:
       - run: mypy src
       - run: bandit -q -r src
       - run: pip-audit --skip-editable
-      - run: pytest
+      - name: tests (SQLite)
+        run: pytest
+      - name: tests (Postgres)
+        run: pytest --no-cov
+        env:
+          PAYREMIND_TEST_DATABASE_URL: postgresql+psycopg://payremind:payremind@localhost:5432/payremind_test

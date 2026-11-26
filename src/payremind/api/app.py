@@ -1,20 +1,76 @@
+import base64
+import hmac
+import io
+import json
 from collections.abc import Callable, Iterator
 from datetime import date
 from decimal import Decimal
-from typing import Annotated
+from pathlib import Path
+from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, UploadFile, status
+import segno
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import HTMLResponse, PlainTextResponse
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from payremind import services
 from payremind.config import Settings, get_settings
-from payremind.db import Base, make_engine, make_sessionmaker
+from payremind.core.phone import normalize_indian_mobile
+from payremind.core.upi import build_upi_link
+from payremind.db import make_engine, make_sessionmaker
 from payremind.importers.excel import ImportFormatError, parse_invoices
 from payremind.messaging.whatsapp import FakeSender, Sender
 from payremind.models import Invoice, Tenant
-from payremind.security import hash_token
+from payremind.security import hash_token, valid_meta_signature
+
+STOP_WORDS = {"stop", "unsubscribe", "stop reminders", "band karo", "बंद करो"}
+TEMPLATES = Environment(
+    loader=FileSystemLoader(Path(__file__).parent / "templates"),
+    autoescape=select_autoescape(["html"]),
+)
+PAGE_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+        "frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    ),
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Robots-Tag": "noindex, nofollow",
+    "Cache-Control": "no-store",
+}
+
+
+def hmac_equal(a: str, b: str) -> bool:
+    return hmac.compare_digest(a.encode(), b.encode())
+
+
+def _qr_svg_b64(data: str) -> str:
+    buf = io.BytesIO()
+    segno.make(data, error="m").save(buf, kind="svg", scale=5, border=2)
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+def _stop_senders(payload: dict[str, Any]) -> list[str]:
+    """Extract phone numbers that sent a STOP text or tapped a STOP quick-reply button."""
+    phones: list[str] = []
+    for entry in payload.get("entry", []) or []:
+        for change in entry.get("changes", []) or []:
+            for msg in (change.get("value") or {}).get("messages", []) or []:
+                kind = msg.get("type")
+                if kind == "text":
+                    text = (msg.get("text") or {}).get("body", "")
+                elif kind == "button":
+                    text = (msg.get("button") or {}).get("payload", "")
+                else:
+                    continue
+                if str(text).strip().lower() in STOP_WORDS:
+                    phone = normalize_indian_mobile(msg.get("from"))
+                    if phone:
+                        phones.append(phone)
+    return phones
 
 
 class InvoiceOut(BaseModel):
@@ -50,7 +106,7 @@ def create_app(
 ) -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.database_url)
-    Base.metadata.create_all(engine)  # replaced by Alembic migrations before beta
+    # Schema is managed by Alembic: run `payremind migrate` before starting the app.
     factory: sessionmaker[Session] = make_sessionmaker(engine)
     reminder_sender: Sender = sender or FakeSender()
 
@@ -94,7 +150,7 @@ def create_app(
     async def upload(file: UploadFile, session: SessionDep, tenant: TenantDep) -> ImportOut:
         content = await file.read(settings.max_upload_bytes + 1)
         if len(content) > settings.max_upload_bytes:
-            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "file too large")
+            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "file too large")
         try:
             parsed = parse_invoices(content, file.filename or "", settings.max_import_rows)
         except ImportFormatError as exc:
@@ -137,7 +193,69 @@ def create_app(
 
     @app.post("/reminders/run", response_model=RunOut)
     def run(session: SessionDep, tenant: TenantDep) -> RunOut:
-        result = services.run_reminders(session, tenant, today(), reminder_sender)
+        result = services.run_reminders(
+            session, tenant, today(), reminder_sender, settings.public_base_url
+        )
         return RunOut(sent=result.sent, failed=result.failed)
+
+    @app.get("/p/{token}", response_class=HTMLResponse, include_in_schema=False)
+    def pay_page(token: str, session: SessionDep) -> HTMLResponse:
+        not_found = HTMLResponse("Not found", status_code=404, headers=PAGE_HEADERS)
+        if not 16 <= len(token) <= 64:
+            return not_found
+        try:
+            inv, tenant = services.get_invoice_by_pay_token(session, token)
+        except services.NotFound:
+            return not_found
+        paid = inv.balance <= 0
+        upi_link = qr = ""
+        if not paid:
+            upi_link = build_upi_link(tenant.upi_vpa, tenant.payee_name, inv.balance, inv.number)
+            qr = _qr_svg_b64(upi_link)
+        html = TEMPLATES.get_template("pay.html").render(
+            payee=tenant.payee_name,
+            vpa=tenant.upi_vpa,
+            number=inv.number,
+            due=inv.due_date.strftime("%d %b %Y"),
+            amount=f"{inv.balance:,.2f}",
+            paid=paid,
+            upi_link=upi_link,
+            qr_b64=qr,
+        )
+        return HTMLResponse(html, headers=PAGE_HEADERS)
+
+    @app.get("/webhooks/whatsapp", include_in_schema=False)
+    # Empty query defaults below are not passwords.
+    def webhook_verify(  # nosec B107
+        mode: Annotated[str, Query(alias="hub.mode")] = "",
+        verify_token: Annotated[str, Query(alias="hub.verify_token")] = "",
+        challenge: Annotated[str, Query(alias="hub.challenge", max_length=100)] = "",
+    ) -> PlainTextResponse:
+        expected = settings.whatsapp_verify_token
+        if (
+            mode == "subscribe"
+            and expected
+            and challenge.isdigit()
+            and hmac_equal(verify_token, expected)
+        ):
+            return PlainTextResponse(challenge)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "verification failed")
+
+    @app.post("/webhooks/whatsapp", include_in_schema=False)
+    async def webhook_receive(request: Request, session: SessionDep) -> dict[str, int]:
+        body = await request.body()
+        if len(body) > 256 * 1024:
+            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "too large")
+        signature = request.headers.get("x-hub-signature-256")
+        if not valid_meta_signature(body, signature, settings.whatsapp_app_secret):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "bad signature")
+        try:
+            payload = json.loads(body)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid json") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid payload")
+        added = sum(services.record_opt_out(session, p) for p in _stop_senders(payload))
+        return {"opted_out": added}
 
     return app

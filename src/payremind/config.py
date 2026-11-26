@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     whatsapp_token: str = ""
     whatsapp_phone_number_id: str = ""
     whatsapp_api_base: str = "https://graph.facebook.com/v21.0"
+    whatsapp_app_secret: str = ""  # verifies webhook signatures
+    whatsapp_verify_token: str = ""  # echoed during webhook subscription
+    public_base_url: str = "http://localhost:8000"  # used to build pay page links
     max_upload_bytes: int = 5 * 1024 * 1024
     max_import_rows: int = 5000
 
