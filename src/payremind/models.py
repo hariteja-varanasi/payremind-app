@@ -7,6 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BigInteger,
     Date,
     DateTime,
     Enum,
@@ -42,6 +43,7 @@ class Customer(Base):
     name: Mapped[str] = mapped_column(String(200))
     phone_e164: Mapped[str | None] = mapped_column(String(20))
     opted_out: Mapped[bool] = mapped_column(default=False)
+    language: Mapped[str] = mapped_column(String(5), default="en", server_default="en")
 
 
 class InvoiceStatus(enum.StrEnum):
@@ -107,3 +109,41 @@ class OptOut(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     phone_e164: Mapped[str] = mapped_column(String(20), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class User(Base):
+    """A person who signs in to a tenant's dashboard with phone OTP."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    phone_e164: Mapped[str] = mapped_column(String(20), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OtpChallenge(Base):
+    """A login code. Only its keyed hash is stored. Times are Unix seconds (UTC)."""
+
+    __tablename__ = "otp_challenges"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    phone_e164: Mapped[str] = mapped_column(String(20), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[int] = mapped_column(BigInteger)
+    expires_at: Mapped[int] = mapped_column(BigInteger)
+    attempts: Mapped[int] = mapped_column(default=0)
+    consumed: Mapped[bool] = mapped_column(default=False)
+
+
+class WebSession(Base):
+    """A dashboard session. The cookie holds the raw token; only its hash is stored."""
+
+    __tablename__ = "web_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
+    csrf_token: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[int] = mapped_column(BigInteger)

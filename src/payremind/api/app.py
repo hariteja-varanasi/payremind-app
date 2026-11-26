@@ -1,12 +1,14 @@
 import base64
-import hmac
 import io
 import json
+import secrets
+import time
 from collections.abc import Callable, Iterator
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Annotated, Any
+from zoneinfo import ZoneInfo
 
 import segno
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, UploadFile, status
@@ -17,14 +19,26 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from payremind import services
+from payremind.api.web import register_web
 from payremind.config import Settings, get_settings
 from payremind.core.phone import normalize_indian_mobile
 from payremind.core.upi import build_upi_link
 from payremind.db import make_engine, make_sessionmaker
 from payremind.importers.excel import ImportFormatError, parse_invoices
-from payremind.messaging.whatsapp import FakeSender, Sender
+from payremind.messaging.whatsapp import Sender, make_sender
 from payremind.models import Invoice, Tenant
-from payremind.security import hash_token, valid_meta_signature
+from payremind.security import hash_token, hmac_equal, valid_meta_signature
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def today_ist() -> date:
+    return datetime.now(IST).date()
+
+
+def unix_now() -> int:
+    return int(time.time())
+
 
 STOP_WORDS = {"stop", "unsubscribe", "stop reminders", "band karo", "बंद करो"}
 TEMPLATES = Environment(
@@ -41,10 +55,6 @@ PAGE_HEADERS = {
     "X-Robots-Tag": "noindex, nofollow",
     "Cache-Control": "no-store",
 }
-
-
-def hmac_equal(a: str, b: str) -> bool:
-    return hmac.compare_digest(a.encode(), b.encode())
 
 
 def _qr_svg_b64(data: str) -> str:
@@ -102,13 +112,17 @@ class RunOut(BaseModel):
 def create_app(
     settings: Settings | None = None,
     sender: Sender | None = None,
-    today: Callable[[], date] = date.today,
+    today: Callable[[], date] = today_ist,
+    now: Callable[[], int] = unix_now,
 ) -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.database_url)
     # Schema is managed by Alembic: run `payremind migrate` before starting the app.
     factory: sessionmaker[Session] = make_sessionmaker(engine)
-    reminder_sender: Sender = sender or FakeSender()
+    reminder_sender: Sender = sender or make_sender(
+        settings.whatsapp_token, settings.whatsapp_phone_number_id, settings.whatsapp_api_base
+    )
+    secret_key = settings.secret_key or secrets.token_hex(32)
 
     app = FastAPI(title="PayRemind", docs_url=None, redoc_url=None)
     app.state.session_factory = factory
@@ -258,4 +272,5 @@ def create_app(
         added = sum(services.record_opt_out(session, p) for p in _stop_senders(payload))
         return {"opted_out": added}
 
+    register_web(app, factory, settings, secret_key, reminder_sender, now, today)
     return app

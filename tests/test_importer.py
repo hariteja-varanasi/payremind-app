@@ -66,3 +66,13 @@ def test_row_limit():
     csv = "Customer,Invoice No,Due Date,Balance\n" + "A,1,01-12-2026,1\n" * 3
     with pytest.raises(ImportFormatError, match="too many"):
         parse_invoices(csv.encode(), "x.csv", max_rows=2)
+
+
+def test_language_column():
+    csv = (
+        "Customer,Invoice No,Due Date,Balance,Language\n"
+        "A,1,01-12-2026,10,Hindi\nB,2,01-12-2026,10,\nC,3,01-12-2026,10,हिंदी\nD,4,01-12-2026,10,ta\n"
+    )
+    r = parse_invoices(csv.encode(), "x.csv")
+    assert [x.language for x in r.rows] == ["hi", "en", "hi"]
+    assert "unsupported language 'ta'" in r.errors[0]

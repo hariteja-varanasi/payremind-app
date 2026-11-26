@@ -40,12 +40,19 @@ def import_rows(session: Session, tenant: Tenant, rows: list[ImportedRow]) -> Im
     for row in rows:
         cust = customers.get(row.customer)
         if cust is None:
-            cust = Customer(tenant_id=tenant.id, name=row.customer, phone_e164=row.phone)
+            cust = Customer(
+                tenant_id=tenant.id,
+                name=row.customer,
+                phone_e164=row.phone,
+                language=row.language,
+            )
             session.add(cust)
             session.flush()
             customers[row.customer] = cust
-        elif row.phone:
-            cust.phone_e164 = row.phone
+        else:
+            if row.phone:
+                cust.phone_e164 = row.phone
+            cust.language = row.language
         inv = session.scalar(
             select(Invoice).where(Invoice.tenant_id == tenant.id, Invoice.number == row.number)
         )
@@ -192,6 +199,7 @@ def run_reminders(
             invoice_number=inv.number,
             amount_text=f"₹{inv.balance:,.2f}",
             pay_link=pay_url(base_url, inv),
+            language=cust.language,
         )
         try:
             message_id = sender.send(msg)
@@ -210,3 +218,21 @@ def run_reminders(
         session.commit()
         sent += 1
     return RunResult(sent, failed)
+
+
+@dataclass(frozen=True)
+class DailyRunResult:
+    tenants: int
+    sent: int
+    failed: int
+
+
+def run_all_tenants(session: Session, today: date, sender: Sender, base_url: str) -> DailyRunResult:
+    """The daily job: run reminders for every tenant. Safe to re-run (ReminderLog is unique)."""
+    sent = failed = count = 0
+    for tenant in list(session.scalars(select(Tenant).order_by(Tenant.id))):
+        result = run_reminders(session, tenant, today, sender, base_url)
+        sent += result.sent
+        failed += result.failed
+        count += 1
+    return DailyRunResult(count, sent, failed)

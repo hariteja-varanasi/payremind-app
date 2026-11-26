@@ -9,10 +9,23 @@ from payremind.api.app import create_app
 from payremind.config import Settings
 from payremind.messaging.whatsapp import FakeSender
 from payremind.migrate import upgrade
-from payremind.models import Tenant
+from payremind.models import Tenant, User
 from payremind.security import hash_token
 
 TODAY = date(2026, 12, 1)
+NOW = 1_796_000_000  # fixed Unix time for OTP and session expiry
+PHONE_A = "+919000000001"
+PHONE_B = "+919000000002"
+
+
+class Clock:
+    def __init__(self) -> None:
+        self.t = NOW
+
+    def __call__(self) -> int:
+        return self.t
+
+
 CSV = (
     "Party Name,Mobile,Invoice No,Invoice Date,Due Date,Amount,Balance\n"
     'Sharma Traders,98450 12345,INV-1,01-10-2026,31-10-2026,"1,000.00",1000\n'
@@ -48,14 +61,21 @@ def database_url(tmp_path):
 
 
 @pytest.fixture
-def app_and_tokens(database_url, sender):
+def clock():
+    return Clock()
+
+
+@pytest.fixture
+def app_and_tokens(database_url, sender, clock):
     settings = Settings(
         database_url=database_url,
         whatsapp_app_secret=APP_SECRET,
         whatsapp_verify_token=VERIFY_TOKEN,
         public_base_url=BASE_URL,
+        secret_key="test-secret-key",
+        cookie_secure=False,
     )
-    app = create_app(settings, sender=sender, today=lambda: TODAY)
+    app = create_app(settings, sender=sender, today=lambda: TODAY, now=clock)
     factory = app.state.session_factory
     tokens = {"a": "token-a", "b": "token-b"}
     with factory() as s:
@@ -75,6 +95,8 @@ def app_and_tokens(database_url, sender):
                 ),
             ]
         )
+        s.flush()
+        s.add_all([User(tenant_id=1, phone_e164=PHONE_A), User(tenant_id=2, phone_e164=PHONE_B)])
         s.commit()
     return app, tokens
 

@@ -102,17 +102,73 @@ def test_failed_send_is_retried_next_run(client, auth, sender, monkeypatch):
     assert client.post("/reminders/run", headers=auth["a"]).json()["sent"] == 2
 
 
-def test_cli_invite(tmp_path, monkeypatch, capsys):
+def test_cli(tmp_path, monkeypatch, capsys):
     from payremind.config import get_settings
 
     monkeypatch.setenv("PAYREMIND_DATABASE_URL", f"sqlite:///{tmp_path}/c.db")
     get_settings.cache_clear()
     try:
-        main(["migrate"])
+        assert main(["migrate"]) == 0
         assert "up to date" in capsys.readouterr().out
-        tenant_id, token = invite("X", "x@okaxis", "X")
+        tenant_id, token = invite("X", "x@okaxis", "X", "98450 11111")
         assert tenant_id == 1 and len(token) > 30
-        main(["invite", "--name", "Y", "--upi", "y@okaxis", "--payee", "Y"])
+        assert (
+            main(
+                [
+                    "invite",
+                    "--name",
+                    "Y",
+                    "--upi",
+                    "y@okaxis",
+                    "--payee",
+                    "Y",
+                    "--owner-phone",
+                    "9845022222",
+                ]
+            )
+            == 0
+        )
         assert "token (shown once)" in capsys.readouterr().out
+        assert main(["add-user", "--tenant", "1", "--phone", "9845033333"]) == 0
+        assert main(["add-user", "--tenant", "9", "--phone", "9845044444"]) == 2
+        assert main(["add-user", "--tenant", "1", "--phone", "123"]) == 2
+        assert (
+            main(
+                ["invite", "--name", "Z", "--upi", "z@okaxis", "--payee", "Z", "--owner-phone", "1"]
+            )
+            == 2
+        )
+        assert "invalid Indian mobile" in capsys.readouterr().err
+        assert main(["run-reminders"]) == 0
+        assert "2 businesses, 0 sent, 0 failed (dry run" in capsys.readouterr().out
     finally:
         get_settings.cache_clear()
+
+
+def test_hindi_customers_get_hindi_reminders(client, auth, sender):
+    csv = (
+        "Customer,Mobile,Invoice No,Due Date,Balance,Language\n"
+        "Verma,9845012345,H-1,24-11-2026,100,hi\n"
+    )
+    upload(client, auth["a"], csv)
+    client.post("/reminders/run", headers=auth["a"])
+    assert sender.sent[0].language == "hi"
+    # re-import can switch the language back
+    upload(client, auth["a"], csv.replace(",hi\n", ",en\n").replace("H-1", "H-2"))
+    from payremind.models import Customer
+
+    with client.app.state.session_factory() as s:
+        assert s.query(Customer).one().language == "en"
+
+
+def test_daily_run_covers_all_tenants(client, auth, sender, app_and_tokens):
+    from payremind.services import run_all_tenants
+    from tests.conftest import BASE_URL, TODAY
+
+    upload(client, auth["a"])
+    upload(client, auth["b"])
+    app, _ = app_and_tokens
+    with app.state.session_factory() as s:
+        r = run_all_tenants(s, TODAY, sender, BASE_URL)
+        assert (r.tenants, r.sent, r.failed) == (2, 4, 0)
+        assert run_all_tenants(s, TODAY, sender, BASE_URL).sent == 0  # idempotent

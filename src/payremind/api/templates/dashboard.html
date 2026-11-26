@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block header %}
+<form class="inline" method="post" action="/logout">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <span class="muted">{{ tenant.name }}</span>
+  <button class="secondary" type="submit">Sign out</button>
+</form>
+{% endblock %}
+{% block content %}
+<div class="tiles">
+  {% for key, label in buckets %}
+  <div class="card tile"><div class="muted">{{ label }}</div><div class="v">₹{{ "{:,.0f}".format(ageing[key]) }}</div></div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h3>Upload outstanding invoices</h3>
+  <form method="post" action="/app/upload" enctype="multipart/form-data" class="row">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="file" name="file" accept=".xlsx,.csv" required style="width:auto">
+    <button type="submit">Upload</button>
+  </form>
+  <p class="muted">Excel or CSV export from Tally, Busy, Vyapar or Excel. Needed columns: customer, invoice no, due date, balance. Optional: phone, amount, invoice date, language (en/hi).</p>
+  {% if errors %}<ul class="muted">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h3>Open invoices</h3>
+    <form method="post" action="/app/reminders/run">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="secondary" type="submit">Send due reminders now</button>
+    </form>
+  </div>
+  <p class="muted">Due reminders go out automatically every morning at 9:30 IST.</p>
+  {% if invoices %}
+  <table>
+    <thead><tr><th>Customer</th><th>Invoice</th><th>Due</th><th class="num">Balance</th><th>Promise to pay</th><th></th></tr></thead>
+    <tbody>
+    {% for inv in invoices %}
+    <tr>
+      <td>{{ inv.customer.name }}{% if not inv.customer.phone_e164 %}<div class="muted">no phone</div>{% endif %}</td>
+      <td>{{ inv.number }}</td>
+      <td>{{ inv.due_date.strftime("%d %b %Y") }}{% if inv.days_late > 0 %}<div class="late">{{ inv.days_late }} days late</div>{% endif %}</td>
+      <td class="num">₹{{ "{:,.2f}".format(inv.balance) }}</td>
+      <td>
+        {% if inv.promise %}<div class="muted">by {{ inv.promise.strftime("%d %b") }}</div>{% endif %}
+        <form method="post" action="/app/invoices/{{ inv.id }}/promise" class="row">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="date" name="promised_date" required aria-label="Promised date">
+          <button class="secondary" type="submit">Save</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/app/invoices/{{ inv.id }}/paid">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit">Mark paid</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No open invoices. Upload an export to get started.</p>
+  {% endif %}
+</div>
+{% endblock %}

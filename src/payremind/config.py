@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     whatsapp_app_secret: str = ""  # verifies webhook signatures
     whatsapp_verify_token: str = ""  # echoed during webhook subscription
     public_base_url: str = "http://localhost:8000"  # used to build pay page links
+    # Keys OTP hashes. Required in production; if empty, a random per-process key is used,
+    # so pending codes stop working after a restart.
+    secret_key: str = ""
+    cookie_secure: bool = True  # set false only for local http development
+    session_days: int = 7
     max_upload_bytes: int = 5 * 1024 * 1024
     max_import_rows: int = 5000
 
