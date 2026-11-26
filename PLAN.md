@@ -11,7 +11,7 @@ Public launch only after the gates at the bottom pass.
 4. UPI link to the merchant's own UPI ID, via an https pay page with QR. **Done.**
 5. Promise-to-pay tracking and mark-paid. **Done (API).**
 6. WhatsApp Cloud API sender with one utility template. **Code done; needs Meta account + template approval.**
-7. Razorpay subscriptions for our own fee. M4.
+7. Razorpay subscriptions for our own fee, with GST invoices. **Done.**
 
 Out of scope for beta: Tally XML/ODBC sync, regional-language templates beyond Hindi,
 payment reconciliation from bank feeds, mobile app, CA multi-client view.
@@ -35,7 +35,7 @@ tests/         unit, API, and tenant-isolation gate tests
   webhook. ✅ (Hindi template moved to M3, it needs Meta approval first.)
 - **M3:** Hindi template, minimal web UI (Jinja forms, no JS build), phone OTP sign-in over
   WhatsApp, daily scheduler command. ✅
-- **M4:** Razorpay subscriptions + GST invoice for our fee; privacy policy, terms, DPA.
+- **M4:** Razorpay subscriptions + GST invoice for our fee; privacy policy, terms, DPA (drafts). ✅
 - **M5:** AWS beta deploy (below), invite first CAs and their clients.
 
 ## AWS beta (ap-south-1), target ~$50–150/month. Not created yet; needs Hari's go-ahead.
@@ -53,10 +53,12 @@ tests/         unit, API, and tenant-isolation gate tests
 - ruff, mypy --strict, bandit, pip-audit clean in CI; CodeQL/Semgrep and OWASP ZAP with no open high/critical.
 - Backup restore tested; 6-hour incident runbook (CERT-In); load test of the reminder run.
 - Privacy policy, terms, DPA live; Razorpay + GST invoicing working.
+- Lawyer review of `/privacy`, `/terms` and `docs/legal/dpa.md` (fill in the bracketed items).
+- CA review: GST registration timing, SAC code 998314, invoice format and record retention.
 - Verify with a professional: payments flow straight to merchant UPI (no RBI PA licence needed),
   GST registration, DPDP processor role.
 
 ## Needs Hari (no cost)
 - Meta Business account + WhatsApp Business number; submit the templates in
   `docs/whatsapp-templates.md` (have a native speaker check the Hindi).
-- Razorpay account (KYC takes days).
+- Razorpay account (KYC takes days); create Starter and Growth monthly plans in test mode first.

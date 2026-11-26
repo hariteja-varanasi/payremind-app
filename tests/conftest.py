@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
 from payremind.api.app import create_app
+from payremind.billing.razorpay import FakeGateway
 from payremind.config import Settings
 from payremind.messaging.whatsapp import FakeSender
 from payremind.migrate import upgrade
@@ -60,13 +61,22 @@ def database_url(tmp_path):
     return url
 
 
+RZP_SECRET = "rzp-webhook-secret"
+SUPPLIER_GSTIN = "29AAGCB7383J1Z4"
+
+
+@pytest.fixture
+def gateway():
+    return FakeGateway()
+
+
 @pytest.fixture
 def clock():
     return Clock()
 
 
 @pytest.fixture
-def app_and_tokens(database_url, sender, clock):
+def app_and_tokens(database_url, sender, clock, gateway):
     settings = Settings(
         database_url=database_url,
         whatsapp_app_secret=APP_SECRET,
@@ -74,8 +84,15 @@ def app_and_tokens(database_url, sender, clock):
         public_base_url=BASE_URL,
         secret_key="test-secret-key",
         cookie_secure=False,
+        razorpay_webhook_secret=RZP_SECRET,
+        razorpay_plan_starter="plan_starter",
+        razorpay_plan_growth="plan_growth",
+        supplier_name="PayRemind Tech",
+        supplier_gstin=SUPPLIER_GSTIN,
+        supplier_state_code="29",
+        supplier_address="Bengaluru",
     )
-    app = create_app(settings, sender=sender, today=lambda: TODAY, now=clock)
+    app = create_app(settings, sender=sender, today=lambda: TODAY, now=clock, gateway=gateway)
     factory = app.state.session_factory
     tokens = {"a": "token-a", "b": "token-b"}
     with factory() as s:

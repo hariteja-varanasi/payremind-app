@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from datetime import timedelta
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -21,7 +22,9 @@ def _sessions() -> sessionmaker[Session]:
     return make_sessionmaker(make_engine(get_settings().database_url))
 
 
-def invite(name: str, upi_vpa: str, payee_name: str, owner_phone: str) -> tuple[int, str]:
+def invite(
+    name: str, upi_vpa: str, payee_name: str, owner_phone: str, trial_days: int = 30
+) -> tuple[int, str]:
     validate_vpa(upi_vpa)
     phone = normalize_indian_mobile(owner_phone)
     if phone is None:
@@ -29,7 +32,13 @@ def invite(name: str, upi_vpa: str, payee_name: str, owner_phone: str) -> tuple[
     token = new_token()
     with _sessions()() as session:
         tenant = Tenant(
-            name=name, upi_vpa=upi_vpa, payee_name=payee_name, api_token_hash=hash_token(token)
+            name=name,
+            upi_vpa=upi_vpa,
+            payee_name=payee_name,
+            api_token_hash=hash_token(token),
+            billing_status="trial",
+            # 0 = complimentary beta account that never expires
+            trial_ends_on=today_ist() + timedelta(days=trial_days) if trial_days > 0 else None,
         )
         session.add(tenant)
         session.flush()
@@ -68,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     inv.add_argument("--upi", required=True)
     inv.add_argument("--payee", required=True)
     inv.add_argument("--owner-phone", required=True, help="WhatsApp number used to sign in")
+    inv.add_argument("--trial-days", type=int, default=30, help="0 = free beta, no expiry")
     au = sub.add_parser("add-user", help="let another phone sign in to a business")
     au.add_argument("--tenant", type=int, required=True)
     au.add_argument("--phone", required=True)
@@ -79,7 +89,9 @@ def main(argv: list[str] | None = None) -> int:
             upgrade(get_settings().database_url)
             print("database is up to date")
         elif args.cmd == "invite":
-            tenant_id, token = invite(args.name, args.upi, args.payee, args.owner_phone)
+            tenant_id, token = invite(
+                args.name, args.upi, args.payee, args.owner_phone, args.trial_days
+            )
             print(f"tenant {tenant_id} created. API token (shown once): {token}")
         elif args.cmd == "add-user":
             add_user(args.tenant, args.phone)

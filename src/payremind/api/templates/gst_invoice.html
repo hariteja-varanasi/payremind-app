@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ inv.number }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h2>{{ "Tax Invoice" if supplier.supplier_gstin else "Invoice" }}</h2>
+    <span class="muted noprint">Use your browser's Print to save as PDF</span>
+  </div>
+  <table>
+    <tr><td style="width:50%">
+      <strong>{{ supplier.supplier_name }}</strong><br>
+      {{ supplier.supplier_address }}<br>
+      State: {{ supplier_state }} ({{ supplier.supplier_state_code }})<br>
+      {% if supplier.supplier_gstin %}GSTIN: {{ supplier.supplier_gstin }}{% else %}Not registered under GST{% endif %}
+    </td><td>
+      Invoice no: <strong>{{ inv.number }}</strong><br>
+      Date: {{ inv.issued_on.strftime("%d %b %Y") }}<br>
+      Payment ref: {{ inv.razorpay_payment_id }}
+    </td></tr>
+    <tr><td colspan="2">
+      <strong>Billed to:</strong> {{ inv.buyer_name }}<br>
+      {{ inv.buyer_address }}<br>
+      Place of supply: {{ buyer_state }} ({{ inv.buyer_state_code }})
+      {% if inv.buyer_gstin %}<br>GSTIN: {{ inv.buyer_gstin }}{% endif %}
+    </td></tr>
+  </table>
+  <table style="margin-top:16px">
+    <thead><tr><th>Description</th><th>SAC</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      <tr><td>PayRemind {{ plan.name if plan else inv.plan }} plan, monthly subscription</td><td>{{ sac }}</td><td class="num">₹{{ "{:,.2f}".format(inv.taxable_value) }}</td></tr>
+      {% if inv.cgst > 0 %}<tr><td colspan="2">CGST 9%</td><td class="num">₹{{ "{:,.2f}".format(inv.cgst) }}</td></tr>
+      <tr><td colspan="2">SGST 9%</td><td class="num">₹{{ "{:,.2f}".format(inv.sgst) }}</td></tr>{% endif %}
+      {% if inv.igst > 0 %}<tr><td colspan="2">IGST 18%</td><td class="num">₹{{ "{:,.2f}".format(inv.igst) }}</td></tr>{% endif %}
+      <tr><th colspan="2">Total (paid)</th><th class="num">₹{{ "{:,.2f}".format(inv.total) }}</th></tr>
+    </tbody>
+  </table>
+  <p class="muted">Tax payable on reverse charge: No. This is a computer-generated invoice.</p>
+</div>
+{% endblock %}

@@ -35,6 +35,18 @@ are opted out for every merchant; `POST /webhooks/whatsapp` checks Meta's signat
 Tests run on SQLite by default. Set `PAYREMIND_TEST_DATABASE_URL` to a Postgres URL to run
 them against Postgres, as CI does.
 
+## Billing (our fee)
+
+`/app/billing` lets a business enter GST billing details, pick a plan (Starter ₹999 or Growth
+₹2,499 a month + GST) and pay on Razorpay's hosted page. `POST /webhooks/razorpay` (signature
+checked, each event processed once) keeps the subscription status in sync and issues a GST
+invoice for every charge: CGST + SGST for Karnataka buyers, IGST otherwise, numbered
+`PR/<FY>/<n>`. New businesses get a 30-day trial (`--trial-days 0` = free beta). Reminders pause
+when a trial ends or a subscription is halted, paused or cancelled.
+
+Draft privacy policy and terms are served at `/privacy` and `/terms`; the merchant DPA is in
+[docs/legal/dpa.md](docs/legal/dpa.md). **All three are drafts that need a lawyer's review.**
+
 ## Checks
 
 `make check` (ruff, mypy strict, bandit, pip-audit) and `make test` (pytest, coverage gate 80%).

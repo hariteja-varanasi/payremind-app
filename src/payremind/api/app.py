@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import io
 import json
 import secrets
@@ -20,6 +22,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from payremind import services
 from payremind.api.web import register_web
+from payremind.billing.razorpay import BillingGateway, make_gateway
+from payremind.billing.service import Supplier, can_send, handle_event
 from payremind.config import Settings, get_settings
 from payremind.core.phone import normalize_indian_mobile
 from payremind.core.upi import build_upi_link
@@ -114,6 +118,7 @@ def create_app(
     sender: Sender | None = None,
     today: Callable[[], date] = today_ist,
     now: Callable[[], int] = unix_now,
+    gateway: BillingGateway | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     engine = make_engine(settings.database_url)
@@ -123,6 +128,10 @@ def create_app(
         settings.whatsapp_token, settings.whatsapp_phone_number_id, settings.whatsapp_api_base
     )
     secret_key = settings.secret_key or secrets.token_hex(32)
+    billing_gateway = gateway or make_gateway(
+        settings.razorpay_key_id, settings.razorpay_key_secret
+    )
+    supplier = Supplier(settings.supplier_gstin, settings.supplier_state_code)
 
     app = FastAPI(title="PayRemind", docs_url=None, redoc_url=None)
     app.state.session_factory = factory
@@ -207,6 +216,8 @@ def create_app(
 
     @app.post("/reminders/run", response_model=RunOut)
     def run(session: SessionDep, tenant: TenantDep) -> RunOut:
+        if not can_send(tenant, today()):
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, "subscription inactive")
         result = services.run_reminders(
             session, tenant, today(), reminder_sender, settings.public_base_url
         )
@@ -272,5 +283,24 @@ def create_app(
         added = sum(services.record_opt_out(session, p) for p in _stop_senders(payload))
         return {"opted_out": added}
 
-    register_web(app, factory, settings, secret_key, reminder_sender, now, today)
+    @app.post("/webhooks/razorpay", include_in_schema=False)
+    async def razorpay_webhook(request: Request, session: SessionDep) -> dict[str, str]:
+        body = await request.body()
+        if len(body) > 256 * 1024:
+            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "too large")
+        secret = settings.razorpay_webhook_secret
+        signature = request.headers.get("x-razorpay-signature", "")
+        expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        if not secret or not hmac_equal(expected, signature):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "bad signature")
+        try:
+            payload = json.loads(body)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid json") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid payload")
+        event_id = request.headers.get("x-razorpay-event-id", "")
+        return {"result": handle_event(session, event_id, payload, supplier)}
+
+    register_web(app, factory, settings, secret_key, reminder_sender, now, today, billing_gateway)
     return app
