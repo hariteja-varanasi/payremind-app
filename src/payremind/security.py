@@ -21,3 +21,7 @@ def valid_meta_signature(body: bytes, header: str | None, app_secret: str) -> bo
         return False
     expected = hmac.new(app_secret.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, header.removeprefix("sha256="))
+
+
+def hmac_equal(a: str, b: str) -> bool:
+    return hmac.compare_digest(a.encode(), b.encode())

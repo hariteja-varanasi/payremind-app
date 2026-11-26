@@ -10,14 +10,23 @@ UPI link that pays the merchant's own UPI ID. We never hold money.
 python -m venv .venv && . .venv/bin/activate
 make install
 payremind migrate                                                               # creates/updates tables
-payremind invite --name "Demo Traders" --upi demo@okaxis --payee "Demo Traders"   # prints a token once
-make run
+payremind invite --name "Demo Traders" --upi demo@okaxis --payee "Demo Traders" \
+  --owner-phone 9845012345                                                      # prints an API token once
+PAYREMIND_COOKIE_SECURE=false make run                                          # then open localhost:8000
+
 curl -H "Authorization: Bearer <token>" -F file=@outstanding.csv localhost:8000/imports
 curl -H "Authorization: Bearer <token>" "localhost:8000/invoices?overdue=true"
 curl -H "Authorization: Bearer <token>" -X POST localhost:8000/reminders/run
 ```
 
-Without WhatsApp credentials, reminders go to an in-memory fake sender.
+Sign in at `/login` with the owner's phone. Without WhatsApp credentials, login codes and
+reminders go to an in-memory fake sender, so for local testing read the code from a test or
+configure a WhatsApp test number. The dashboard covers upload, open and overdue invoices,
+ageing totals, promise-to-pay dates, mark paid and "send due reminders now".
+
+`payremind run-reminders` is the daily job (9:30 IST in production): it sends due reminders
+for every business and is safe to re-run. Customers with `language` = `hi` in the upload get
+the Hindi template. Template texts for Meta are in [docs/whatsapp-templates.md](docs/whatsapp-templates.md).
 
 Each reminder links to `PAYREMIND_PUBLIC_BASE_URL/p/<token>`, a pay page with a UPI button
 and QR code that pays the merchant's own UPI ID. Customers who reply STOP (or "band karo")

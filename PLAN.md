@@ -33,14 +33,16 @@ tests/         unit, API, and tenant-isolation gate tests
 - **M2:** Alembic migrations, Postgres, https pay page per invoice (`/p/<token>` with UPI
   button + QR) because WhatsApp doesn't reliably make `upi://` links tappable; STOP/opt-out
   webhook. ✅ (Hindi template moved to M3, it needs Meta approval first.)
-- **M3:** Hindi template, minimal web UI (HTMX + Jinja, no JS build), phone OTP sign-in, daily scheduler.
+- **M3:** Hindi template, minimal web UI (Jinja forms, no JS build), phone OTP sign-in over
+  WhatsApp, daily scheduler command. ✅
 - **M4:** Razorpay subscriptions + GST invoice for our fee; privacy policy, terms, DPA.
 - **M5:** AWS beta deploy (below), invite first CAs and their clients.
 
 ## AWS beta (ap-south-1), target ~$50–150/month. Not created yet; needs Hari's go-ahead.
 - Lambda (container image, via Mangum) behind API Gateway HTTP API; CloudFront + WAF in front.
 - RDS Postgres db.t4g.micro, single-AZ for beta, encrypted with KMS, automated backups.
-- EventBridge Scheduler triggers the daily reminder run (09:30 IST).
+- EventBridge Scheduler (timezone Asia/Kolkata, 09:30) runs `payremind run-reminders`.
+- WAF rate rule on `/login` and `/login/verify` per IP, on top of the app's per-phone limits.
 - Secrets Manager for WhatsApp/Razorpay keys; CloudTrail, GuardDuty, CloudWatch logs kept 180 days (CERT-In).
 - No NAT gateway; Lambda outside VPC for outbound calls, RDS reached via RDS Proxy or
   a VPC Lambda with VPC endpoints (decide in M5 with the pricing calculator).
@@ -55,5 +57,6 @@ tests/         unit, API, and tenant-isolation gate tests
   GST registration, DPDP processor role.
 
 ## Needs Hari (no cost)
-- Meta Business account + WhatsApp Business number; submit `payment_reminder_v1` template.
+- Meta Business account + WhatsApp Business number; submit the templates in
+  `docs/whatsapp-templates.md` (have a native speaker check the Hindi).
 - Razorpay account (KYC takes days).

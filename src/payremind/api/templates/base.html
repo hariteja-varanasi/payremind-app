@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block title %}PayRemind{% endblock %}</title>
+<style>
+  :root { --green: #0b6b3a; --line: #e3e3e3; --muted: #666; --red: #b42318; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #fafafa; }
+  header { background: #fff; border-bottom: 1px solid var(--line); padding: 12px 20px;
+           display: flex; justify-content: space-between; align-items: center; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+  .narrow { max-width: 380px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  input, button { font: inherit; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; }
+  button { background: var(--green); color: #fff; border-color: var(--green); cursor: pointer; }
+  button.secondary { background: #fff; color: var(--green); }
+  label { display: block; margin: 8px 0 4px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .late { color: var(--red); font-weight: 600; }
+  .flash { background: #eef7f1; border: 1px solid #b7dcc4; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .row input { width: 130px; }
+  form.inline { display: inline; }
+</style>
+</head>
+<body>
+<header>
+  <strong>PayRemind</strong>
+  {% block header %}{% endblock %}
+</header>
+<main class="{% block main_class %}{% endblock %}">
+{% if flash %}<div class="flash">{{ flash }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

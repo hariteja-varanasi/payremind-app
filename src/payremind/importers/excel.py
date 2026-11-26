@@ -20,7 +20,9 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "due_date": ("due date", "due on", "due"),
     "amount": ("amount", "invoice amount", "bill amount", "total"),
     "balance": ("balance", "pending", "outstanding", "pending amount", "balance due"),
+    "language": ("language", "lang", "bhasha"),
 }
+LANGUAGES = {"en": "en", "english": "en", "hi": "hi", "hindi": "hi", "हिंदी": "hi", "हिन्दी": "hi"}
 REQUIRED = ("customer", "number", "due_date", "balance")
 
 
@@ -33,6 +35,7 @@ class ImportedRow:
     due_date: date
     amount: Decimal
     balance: Decimal
+    language: str = "en"
 
 
 @dataclass
@@ -146,11 +149,17 @@ def parse_invoices(content: bytes, filename: str, max_rows: int = 5000) -> Impor
             if balance < 0 or amount < 0:
                 raise ValueError("amounts cannot be negative")
             phone = normalize_indian_mobile(_cell(row, mapping, "phone"))
+            lang_raw = str(_cell(row, mapping, "language") or "en").strip().lower()
+            language = LANGUAGES.get(lang_raw)
+            if language is None:
+                raise ValueError(f"unsupported language {lang_raw!r} (use en or hi)")
         except ValueError as exc:
             result.errors.append(f"row {line_no}: {exc}")
             continue
         seen.add(number)
         result.rows.append(
-            ImportedRow(customer[:200], phone, number[:64], inv_date, due, amount, balance)
+            ImportedRow(
+                customer[:200], phone, number[:64], inv_date, due, amount, balance, language
+            )
         )
     return result
