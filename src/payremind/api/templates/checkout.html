@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Subscribe · PayRemind{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>{{ plan.name }} plan</h3>
+  <p>₹{{ "{:,.0f}".format(plan.monthly_price) }} a month + GST, billed by Razorpay. You can pay by UPI Autopay or card.</p>
+  <p><a href="{{ url }}" rel="noopener noreferrer" style="display:inline-block;background:var(--green);color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;font-weight:600">Continue to Razorpay</a></p>
+  <p class="muted">After paying, come back to <a href="/app/billing">Billing</a>. It can take a minute to show as active.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Privacy policy · PayRemind{% endblock %}
+{% block content %}
+<div class="card">
+<div class="draft"><strong>DRAFT, not yet reviewed by a lawyer.</strong> This page must be reviewed by a qualified professional before PayRemind is opened to the public.</div>
+<h2>Privacy policy</h2>
+<p class="muted">Last updated: {{ updated }}</p>
+
+<h3>Who we are</h3>
+<p>PayRemind ("we") helps Indian businesses ("merchants") remind their customers about unpaid invoices over WhatsApp. Contact and grievance officer: <strong>[name, email, postal address]</strong>.</p>
+
+<h3>Our two roles</h3>
+<ul>
+  <li><strong>For merchants' own account data</strong> (owner phone number, business name, GSTIN, billing address, subscription records) we are the <em>data fiduciary</em> under India's Digital Personal Data Protection Act, 2023 (DPDP Act).</li>
+  <li><strong>For the merchant's customers' data</strong> that a merchant uploads (customer names, phone numbers, invoice details, promises to pay) the merchant is the data fiduciary and we act as their <em>data processor</em>, only on their instructions, under our Data Processing Agreement.</li>
+</ul>
+
+<h3>What we collect and why</h3>
+<ul>
+  <li>Owner phone number: to sign you in with a one-time code sent on WhatsApp.</li>
+  <li>Invoice files you upload: to show overdue invoices and send reminders you set up.</li>
+  <li>Billing details and payment references: to charge your subscription and issue GST invoices. Card and UPI details are handled by Razorpay; we never see or store them.</li>
+  <li>Opt-out records (phone numbers that replied STOP): to stop sending reminders to them.</li>
+  <li>Security logs (IP address, time, action): to protect the service and meet CERT-In log retention rules.</li>
+</ul>
+
+<h3>Money</h3>
+<p>Payments from your customers go directly to your own UPI ID. We never receive, hold or move your customers' money.</p>
+
+<h3>Who we share data with</h3>
+<p>Only the service providers needed to run PayRemind: Amazon Web Services (hosting, Mumbai region, India), Meta Platforms (WhatsApp Business messaging), and Razorpay (subscription payments). We do not sell personal data or use it for advertising.</p>
+
+<h3>Where data is stored</h3>
+<p>In India (AWS Mumbai region). WhatsApp messages pass through Meta's systems, which may be outside India.</p>
+
+<h3>How long we keep it</h3>
+<ul>
+  <li>Invoice and customer data: while your account is active, deleted within 30 days after you close it.</li>
+  <li>Billing records and GST invoices: as long as tax law requires (currently at least 8 years in our understanding; to be confirmed).</li>
+  <li>Security logs: 180 days, as required by CERT-In directions.</li>
+</ul>
+
+<h3>Your rights</h3>
+<p>You can ask to access, correct or erase your personal data, withdraw consent, nominate someone to act for you, and raise a grievance with our grievance officer. If we don't resolve it, you may complain to the Data Protection Board of India. Customers of a merchant should contact that merchant first; we will help the merchant respond.</p>
+
+<h3>Security</h3>
+<p>Encryption in transit and at rest, access limited to people who need it, hashed sign-in codes and session tokens, and incident reporting to CERT-In within 6 hours and to affected users and the Data Protection Board as the DPDP Rules require.</p>
+
+<h3>Children</h3>
+<p>PayRemind is for businesses. We don't knowingly process children's data.</p>
+
+<h3>Changes</h3>
+<p>We'll tell merchants about material changes by WhatsApp or email before they take effect.</p>
+</div>
+{% endblock %}

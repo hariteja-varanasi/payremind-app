@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Billing · PayRemind{% endblock %}
+{% block header %}
+<form class="inline" method="post" action="/logout">
+  <a href="/app">Invoices</a> · <a href="/app/billing">Billing</a> ·
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <span class="muted">{{ tenant.name }}</span>
+  <button class="secondary" type="submit">Sign out</button>
+</form>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>Your plan</h3>
+  {% if subscribed %}
+    <p><strong>{{ tenant.plan|capitalize }}</strong> · {{ "payment retrying" if tenant.billing_status == "past_due" else "active" }}</p>
+    <form method="post" action="/app/billing/cancel">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="secondary" type="submit">Cancel at end of period</button>
+    </form>
+  {% else %}
+    <p>
+      {% if tenant.billing_status == "trial" %}
+        Free trial{% if tenant.trial_ends_on %} until {{ tenant.trial_ends_on.strftime("%d %b %Y") }}{% else %} (beta){% endif %}.
+      {% else %}
+        Subscription {{ tenant.billing_status }}. {% if not can_send %}Reminders are paused.{% endif %}
+      {% endif %}
+    </p>
+    {% if not enabled %}<p class="muted">Online billing isn't switched on yet.</p>{% endif %}
+    <div class="tiles">
+    {% for p in plans %}
+      <div class="card">
+        <strong>{{ p.name }}</strong>
+        <div class="tile"><span class="v">₹{{ "{:,.0f}".format(p.monthly_price) }}</span> <span class="muted">/ month + GST</span></div>
+        <p class="muted">{{ p.blurb }}</p>
+        <form method="post" action="/app/billing/subscribe">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="plan" value="{{ p.key }}">
+          <button type="submit" {% if not ready or not enabled %}disabled{% endif %}>Subscribe</button>
+        </form>
+      </div>
+    {% endfor %}
+    </div>
+    {% if not ready %}<p class="muted">Fill in your billing details below to subscribe.</p>{% endif %}
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Billing details</h3>
+  <p class="muted">Printed on your GST invoice. Add your GSTIN to claim input tax credit.</p>
+  <form method="post" action="/app/billing/details">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="legal_name">Legal business name</label>
+    <input id="legal_name" name="legal_name" value="{{ tenant.legal_name }}" maxlength="200" required style="width:100%">
+    <label for="gstin">GSTIN (optional)</label>
+    <input id="gstin" name="gstin" value="{{ tenant.gstin }}" maxlength="15" placeholder="29ABCDE1234F1Z5">
+    <label for="state_code">State</label>
+    <select id="state_code" name="state_code" required>
+      <option value="">Choose…</option>
+      {% for code, name in states %}<option value="{{ code }}" {% if code == tenant.state_code %}selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+    <label for="billing_address">Address</label>
+    <input id="billing_address" name="billing_address" value="{{ tenant.billing_address }}" maxlength="500" required style="width:100%">
+    <p><button type="submit">Save details</button></p>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Invoices</h3>
+  {% if invoices %}
+  <table>
+    <thead><tr><th>Number</th><th>Date</th><th class="num">Total</th></tr></thead>
+    <tbody>
+    {% for inv in invoices %}
+      <tr><td><a href="/app/billing/invoices/{{ inv.id }}">{{ inv.number }}</a></td><td>{{ inv.issued_on.strftime("%d %b %Y") }}</td><td class="num">₹{{ "{:,.2f}".format(inv.total) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">No invoices yet.</p>{% endif %}
+</div>
+{% endblock %}

@@ -16,14 +16,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from payremind import auth, services
+from payremind.billing.gst import SAC_CODE, STATES, validate_gstin
+from payremind.billing.razorpay import BillingError, BillingGateway
+from payremind.billing.service import PLANS, billing_ready, can_send
 from payremind.config import Settings
 from payremind.core.phone import normalize_indian_mobile
 from payremind.importers.excel import ImportFormatError, parse_invoices
 from payremind.messaging.whatsapp import Sender
-from payremind.models import Promise, Tenant, WebSession
+from payremind.models import BillingInvoice, Promise, Tenant, WebSession
 from payremind.security import hmac_equal
 
 COOKIE = "pr_session"
+LEGAL_UPDATED = "26 Nov 2026 (draft)"
 TEMPLATES = Environment(
     loader=FileSystemLoader(Path(__file__).parent / "templates"),
     autoescape=select_autoescape(["html"]),
@@ -51,6 +55,13 @@ FLASH = {
     "promise": "Promise to pay saved. Reminders pause until that date.",
     "bad_date": "Pick a promise date from today onwards.",
     "not_found": "That invoice wasn't found.",
+    "details": "Billing details saved.",
+    "need_details": "Fill in your billing details first; they go on your GST invoice.",
+    "already": "You already have an active subscription.",
+    "bad_plan": "Pick one of the plans.",
+    "no_billing": "Online billing isn't switched on yet. We'll contact you.",
+    "billing_error": "Razorpay didn't respond. Please try again in a minute.",
+    "cancelled": "Cancellation requested. You keep access until the end of this billing period.",
 }
 
 
@@ -68,6 +79,7 @@ def register_web(
     sender: Sender,
     now: Callable[[], int],
     today: Callable[[], date],
+    gateway: BillingGateway | None = None,
 ) -> None:
     def get_session() -> Iterator[Session]:
         with factory() as session:
@@ -131,11 +143,21 @@ def register_web(
             invoices=rows,
             flash=flash,
             errors=errors or [],
+            can_send=can_send(tenant, current),
+            trial_ends_on=tenant.trial_ends_on if tenant.billing_status == "trial" else None,
         )
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
         return RedirectResponse("/app", status_code=status.HTTP_303_SEE_OTHER)
+
+    @app.get("/privacy", response_class=HTMLResponse, include_in_schema=False)
+    def privacy() -> HTMLResponse:
+        return page("privacy.html", updated=LEGAL_UPDATED)
+
+    @app.get("/terms", response_class=HTMLResponse, include_in_schema=False)
+    def terms() -> HTMLResponse:
+        return page("terms.html", updated=LEGAL_UPDATED)
 
     @app.get("/login", response_class=HTMLResponse, include_in_schema=False)
     def login_form() -> HTMLResponse:
@@ -251,8 +273,141 @@ def register_web(
     def app_run(session: SessionDep, user: WebUser, csrf: Annotated[str, Form()]) -> HTMLResponse:
         ws, tenant = user
         check_csrf(ws, csrf)
+        if not can_send(tenant, today()):
+            return dashboard(session, ws, tenant, "Reminders are paused: subscription inactive.")
         result = services.run_reminders(session, tenant, today(), sender, settings.public_base_url)
         msg = f"Sent {result.sent} reminders."
         if result.failed:
             msg += f" {result.failed} failed and will be retried next run."
         return dashboard(session, ws, tenant, msg)
+
+    def billing_back(flash: str) -> RedirectResponse:
+        return RedirectResponse(f"/app/billing?m={flash}", status_code=status.HTTP_303_SEE_OTHER)
+
+    def billing_page(
+        session: Session, ws: WebSession, tenant: Tenant, flash: str | None = None, code: int = 200
+    ) -> HTMLResponse:
+        invoices = list(
+            session.scalars(
+                select(BillingInvoice)
+                .where(BillingInvoice.tenant_id == tenant.id)
+                .order_by(BillingInvoice.id.desc())
+            )
+        )
+        return page(
+            "billing.html",
+            code,
+            tenant=tenant,
+            csrf=ws.csrf_token,
+            plans=PLANS.values(),
+            states=sorted(STATES.items(), key=lambda kv: kv[1]),
+            invoices=invoices,
+            flash=flash,
+            ready=billing_ready(tenant),
+            enabled=gateway is not None,
+            subscribed=tenant.billing_status in {"active", "past_due"},
+            can_send=can_send(tenant, today()),
+        )
+
+    @app.get("/app/billing", response_class=HTMLResponse, include_in_schema=False)
+    def billing_home(session: SessionDep, user: WebUser, m: str = "") -> HTMLResponse:
+        ws, tenant = user
+        return billing_page(session, ws, tenant, FLASH.get(m))
+
+    @app.post("/app/billing/details", response_class=HTMLResponse, include_in_schema=False)
+    def billing_details(
+        session: SessionDep,
+        user: WebUser,
+        csrf: Annotated[str, Form()],
+        legal_name: Annotated[str, Form(max_length=200)],
+        state_code: Annotated[str, Form(max_length=2)],
+        billing_address: Annotated[str, Form(max_length=500)],
+        gstin: Annotated[str, Form(max_length=20)] = "",
+    ) -> Response:
+        ws, tenant = user
+        check_csrf(ws, csrf)
+        if state_code not in STATES or not legal_name.strip() or not billing_address.strip():
+            return billing_page(session, ws, tenant, "Name, state and address are required.", 422)
+        clean_gstin = ""
+        if gstin.strip():
+            try:
+                clean_gstin = validate_gstin(gstin)
+            except ValueError as exc:
+                return billing_page(session, ws, tenant, str(exc), 422)
+            if clean_gstin[:2] != state_code:
+                return billing_page(
+                    session, ws, tenant, "The GSTIN's first two digits must match your state.", 422
+                )
+        tenant.legal_name = legal_name.strip()
+        tenant.state_code = state_code
+        tenant.billing_address = billing_address.strip()
+        tenant.gstin = clean_gstin
+        session.commit()
+        return billing_back("details")
+
+    @app.post("/app/billing/subscribe", response_class=HTMLResponse, include_in_schema=False)
+    def billing_subscribe(
+        session: SessionDep,
+        user: WebUser,
+        csrf: Annotated[str, Form()],
+        plan: Annotated[str, Form(max_length=20)],
+    ) -> Response:
+        ws, tenant = user
+        check_csrf(ws, csrf)
+        plan_ids = {
+            "starter": settings.razorpay_plan_starter,
+            "growth": settings.razorpay_plan_growth,
+        }
+        if plan not in PLANS:
+            return billing_back("bad_plan")
+        if gateway is None or not plan_ids[plan]:
+            return billing_back("no_billing")
+        if tenant.billing_status in {"active", "past_due"}:
+            return billing_back("already")
+        if not billing_ready(tenant):
+            return billing_back("need_details")
+        try:
+            sub = gateway.create_subscription(plan_ids[plan], tenant.id)
+        except BillingError:
+            return billing_back("billing_error")
+        tenant.razorpay_subscription_id = sub.id
+        tenant.plan = plan
+        session.commit()
+        # A link, not a redirect: CSP form-action 'self' would block a cross-site redirect.
+        return page("checkout.html", tenant=tenant, plan=PLANS[plan], url=sub.short_url)
+
+    @app.post("/app/billing/cancel", include_in_schema=False)
+    def billing_cancel(
+        session: SessionDep, user: WebUser, csrf: Annotated[str, Form()]
+    ) -> RedirectResponse:
+        ws, tenant = user
+        check_csrf(ws, csrf)
+        if gateway is None or not tenant.razorpay_subscription_id:
+            return billing_back("no_billing")
+        try:
+            gateway.cancel_subscription(tenant.razorpay_subscription_id)
+        except BillingError:
+            return billing_back("billing_error")
+        return billing_back("cancelled")
+
+    @app.get(
+        "/app/billing/invoices/{invoice_id}", response_class=HTMLResponse, include_in_schema=False
+    )
+    def billing_invoice(invoice_id: int, session: SessionDep, user: WebUser) -> HTMLResponse:
+        _, tenant = user
+        inv = session.scalar(
+            select(BillingInvoice).where(
+                BillingInvoice.id == invoice_id, BillingInvoice.tenant_id == tenant.id
+            )
+        )
+        if inv is None:
+            return page("base.html", 404, flash="Invoice not found.")
+        return page(
+            "gst_invoice.html",
+            inv=inv,
+            plan=PLANS.get(inv.plan),
+            supplier=settings,
+            sac=SAC_CODE,
+            buyer_state=STATES.get(inv.buyer_state_code, ""),
+            supplier_state=STATES.get(settings.supplier_state_code, ""),
+        )

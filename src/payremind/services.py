@@ -7,6 +7,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from payremind.billing.service import can_send
 from payremind.core.ageing import AgeingItem, ageing_summary
 from payremind.core.schedule import InvoiceState, due_offset
 from payremind.importers.excel import ImportedRow
@@ -228,9 +229,14 @@ class DailyRunResult:
 
 
 def run_all_tenants(session: Session, today: date, sender: Sender, base_url: str) -> DailyRunResult:
-    """The daily job: run reminders for every tenant. Safe to re-run (ReminderLog is unique)."""
+    """The daily job: run reminders for every tenant in good standing.
+
+    Safe to re-run (ReminderLog is unique). `tenants` counts the businesses actually run.
+    """
     sent = failed = count = 0
     for tenant in list(session.scalars(select(Tenant).order_by(Tenant.id))):
+        if not can_send(tenant, today):
+            continue
         result = run_reminders(session, tenant, today, sender, base_url)
         sent += result.sent
         failed += result.failed

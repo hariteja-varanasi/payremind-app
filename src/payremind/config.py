@@ -19,6 +19,17 @@ class Settings(BaseSettings):
     secret_key: str = ""
     cookie_secure: bool = True  # set false only for local http development
     session_days: int = 7
+    # Razorpay (our own subscription fee). Plan ids come from the Razorpay dashboard.
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+    razorpay_plan_starter: str = ""
+    razorpay_plan_growth: str = ""
+    # Supplier (us) on GST invoices. Leave gstin empty until registered: invoices then carry no GST.
+    supplier_name: str = "PayRemind"
+    supplier_gstin: str = ""
+    supplier_state_code: str = "29"  # Karnataka
+    supplier_address: str = ""
     max_upload_bytes: int = 5 * 1024 * 1024
     max_import_rows: int = 5000
 

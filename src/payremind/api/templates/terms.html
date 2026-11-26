@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Terms of service · PayRemind{% endblock %}
+{% block content %}
+<div class="card">
+<div class="draft"><strong>DRAFT, not yet reviewed by a lawyer.</strong> These terms must be reviewed by a qualified professional before PayRemind is opened to the public.</div>
+<h2>Terms of service</h2>
+<p class="muted">Last updated: {{ updated }}</p>
+
+<h3>1. The service</h3>
+<p>PayRemind lets a business ("you") upload outstanding invoices, see what is overdue, and send WhatsApp payment reminders to your customers with a link to pay your own UPI ID. During the beta, access is by invitation and features may change.</p>
+
+<h3>2. Your responsibilities</h3>
+<ul>
+  <li>You only upload invoices that are genuinely owed and customer contact details you are allowed to use for payment reminders.</li>
+  <li>You are the data fiduciary for your customers' data and you give them any notices the law requires. Our Data Processing Agreement forms part of these terms.</li>
+  <li>You won't use PayRemind for harassment, threats, debt collection practices that break the law, marketing messages, or anything that breaks WhatsApp's Business and Commerce policies.</li>
+  <li>You keep your sign-in phone secure and tell us at once if you think your account was misused.</li>
+</ul>
+
+<h3>3. Payments to you</h3>
+<p>Your customers pay you directly through UPI. PayRemind is not a payment aggregator, bank or collection agent, never holds your money, and is not responsible for whether a customer pays.</p>
+
+<h3>4. Fees</h3>
+<p>Plans are billed monthly in advance through Razorpay, plus GST. You can cancel any time; access continues until the end of the paid period. Fees already paid are not refunded except where the law requires. If a payment fails and Razorpay's retries are exhausted, reminders pause until payment succeeds. We'll give 30 days' notice of price changes.</p>
+
+<h3>5. Messages and opt-outs</h3>
+<p>Reminders use WhatsApp templates approved by Meta. Customers can reply STOP at any time, and we will stop messaging that number for every merchant on PayRemind. Message delivery depends on Meta and is not guaranteed.</p>
+
+<h3>6. Availability and changes</h3>
+<p>We aim for high availability but don't promise uninterrupted service during the beta. We may change or discontinue features with reasonable notice.</p>
+
+<h3>7. Liability</h3>
+<p>To the extent the law allows, our total liability in any 12 months is limited to the fees you paid us in that period, and we aren't liable for indirect losses or unpaid invoices.</p>
+
+<h3>8. Ending the agreement</h3>
+<p>You can close your account any time. We may suspend accounts that break these terms or WhatsApp's policies. After closure we delete your invoice and customer data within 30 days, except records we must keep by law.</p>
+
+<h3>9. Law and disputes</h3>
+<p>Indian law applies. Courts in <strong>[Bengaluru, Karnataka]</strong> have jurisdiction. Contact: <strong>[email]</strong>.</p>
+</div>
+{% endblock %}

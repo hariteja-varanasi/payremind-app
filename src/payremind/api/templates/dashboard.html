@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 {% block header %}
 <form class="inline" method="post" action="/logout">
+  <a href="/app">Invoices</a> · <a href="/app/billing">Billing</a> ·
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <span class="muted">{{ tenant.name }}</span>
   <button class="secondary" type="submit">Sign out</button>
 </form>
 {% endblock %}
 {% block content %}
+{% if not can_send %}<div class="flash" style="background:#fdecea;border-color:#f5c2bd">Reminders are paused because your subscription isn't active. <a href="/app/billing">Go to billing</a>.</div>
+{% elif trial_ends_on %}<div class="flash">Free trial until {{ trial_ends_on.strftime("%d %b %Y") }}. <a href="/app/billing">Choose a plan</a>.</div>{% endif %}
 <div class="tiles">
   {% for key, label in buckets %}
   <div class="card tile"><div class="muted">{{ label }}</div><div class="v">₹{{ "{:,.0f}".format(ageing[key]) }}</div></div>

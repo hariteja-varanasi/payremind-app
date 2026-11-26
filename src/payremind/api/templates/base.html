@@ -29,6 +29,9 @@
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .row input { width: 130px; }
   form.inline { display: inline; }
+  a { color: var(--green); }
+  .draft { background: #fff4e5; border: 1px solid #f3c27a; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+  @media print { header, footer, .noprint { display: none; } body { background: #fff; } }
 </style>
 </head>
 <body>
@@ -40,5 +43,6 @@
 {% if flash %}<div class="flash">{{ flash }}</div>{% endif %}
 {% block content %}{% endblock %}
 </main>
+<footer class="muted" style="text-align:center;padding:20px"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></footer>
 </body>
 </html>
