@@ -1,0 +1,34 @@
+# Accepted for the invite-only beta. Each skip is a cost or design trade-off, revisited before
+# public launch (see infra/README.md "Security trade-offs").
+framework: [terraform]
+quiet: true
+compact: true
+skip-check:
+  - CKV_AWS_333   # ECS public IP: outbound-only, SG allows inbound from ALB alone; avoids a ~$35/mo NAT gateway
+  - CKV_AWS_157   # RDS Multi-AZ: doubles DB cost; daily backups + PITR for beta
+  - CKV_AWS_161   # RDS IAM auth: password managed and rotated by RDS in Secrets Manager
+  - CKV_AWS_118   # RDS enhanced monitoring: extra cost; Performance Insights is on
+  - CKV_AWS_354   # Performance Insights CMK: AWS-managed key is used
+  - CKV_AWS_337   # SSM SecureString with CMK: AWS-managed aws/ssm key is used
+  - CKV_AWS_35    # CloudTrail CMK: SSE-S3 is used
+  - CKV_AWS_145   # S3 CMK: SSE-S3 is used
+  - CKV_AWS_158   # CloudWatch Logs CMK: default encryption is used
+  - CKV_AWS_26    # SNS CMK: topic carries alert text only
+  - CKV_AWS_136   # ECR CMK: AES256 is used
+  - CKV_AWS_297   # Scheduler CMK: schedule holds no secrets
+  - CKV_AWS_65    # Container Insights: off to save cost
+  - CKV_AWS_18    # Access logging on the log bucket itself
+  - CKV_AWS_144   # Cross-region replication: data must stay in India
+  - CKV2_AWS_62   # S3 event notifications: not needed
+  - CKV2_AWS_10   # CloudTrail to CloudWatch Logs: S3 + log file validation used
+  - CKV_AWS_252   # CloudTrail SNS topic: not needed
+  - CKV2_AWS_31   # WAF logging: sampled requests + metrics on; full logs cost extra
+  - CKV_AWS_86    # CloudFront access logs: ALB access logs cover every request
+  - CKV_AWS_374   # CloudFront geo restriction: done in WAF so webhooks stay reachable
+  - CKV_AWS_305   # Default root object: dynamic app, not a static site
+  - CKV_AWS_310   # Origin failover: single-region beta
+  - CKV_AWS_378   # Target group HTTP: TLS ends at the ALB inside the VPC; app SG allows ALB only
+  - CKV_AWS_394   # AZ pinning: only the first two AZs are used
+  - CKV2_AWS_3    # GuardDuty org config: single account
+  - CKV2_AWS_28   # ALB WAF: ALB only accepts CloudFront (prefix list + secret header); WAF is on CloudFront
+  - CKV2_AWS_47   # Log4j AMR: KnownBadInputs rule set (which covers Log4j) is applied

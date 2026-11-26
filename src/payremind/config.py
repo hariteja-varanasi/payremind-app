@@ -1,12 +1,24 @@
 from functools import lru_cache
+from typing import Any
+from urllib.parse import quote
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Terraform creates SSM parameters with this placeholder until real values are set.
+UNSET = "unset"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PAYREMIND_", env_file=".env")
 
     database_url: str = "sqlite:///./payremind.db"
+    # On AWS the URL is built from these; the password comes from the RDS-managed secret.
+    db_host: str = ""
+    db_port: int = 5432
+    db_name: str = "payremind"
+    db_user: str = "payremind"
+    db_password: str = ""
     # WhatsApp Cloud API. Leave empty in dev: the fake sender is used instead.
     whatsapp_token: str = ""
     whatsapp_phone_number_id: str = ""
@@ -32,6 +44,23 @@ class Settings(BaseSettings):
     supplier_address: str = ""
     max_upload_bytes: int = 5 * 1024 * 1024
     max_import_rows: int = 5000
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_placeholders(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return {k: ("" if v == UNSET else v) for k, v in data.items()}
+        return data  # pragma: no cover
+
+    @model_validator(mode="after")
+    def _build_database_url(self) -> "Settings":
+        if self.db_host:
+            self.database_url = (
+                f"postgresql+psycopg://{quote(self.db_user, safe='')}:"
+                f"{quote(self.db_password, safe='')}@{self.db_host}:{self.db_port}/"
+                f"{self.db_name}?sslmode=require"
+            )
+        return self
 
 
 @lru_cache

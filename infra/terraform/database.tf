@@ -1,0 +1,46 @@
+resource "aws_db_subnet_group" "main" {
+  name       = "payremind-${var.environment}"
+  subnet_ids = aws_subnet.private[*].id
+}
+
+resource "aws_db_parameter_group" "pg16" {
+  name   = "payremind-pg16"
+  family = "postgres16"
+  parameter {
+    name  = "rds.force_ssl"
+    value = "1"
+  }
+  parameter {
+    name  = "log_min_duration_statement"
+    value = "1000" # log queries slower than 1s
+  }
+}
+
+resource "aws_db_instance" "main" {
+  identifier                      = "payremind-${var.environment}"
+  engine                          = "postgres"
+  engine_version                  = "16"
+  instance_class                  = var.db_instance_class
+  allocated_storage               = 20
+  max_allocated_storage           = 50
+  storage_type                    = "gp3"
+  storage_encrypted               = true
+  db_name                         = "payremind"
+  username                        = "payremind"
+  manage_master_user_password     = true # RDS keeps the password in Secrets Manager and rotates it
+  db_subnet_group_name            = aws_db_subnet_group.main.name
+  vpc_security_group_ids          = [aws_security_group.db.id]
+  parameter_group_name            = aws_db_parameter_group.pg16.name
+  publicly_accessible             = false
+  multi_az                        = false # beta; switch on before public launch if budget allows
+  backup_retention_period         = 7
+  backup_window                   = "20:00-21:00" # 01:30-02:30 IST
+  maintenance_window              = "sun:21:00-sun:22:00"
+  auto_minor_version_upgrade      = true
+  copy_tags_to_snapshot           = true
+  deletion_protection             = true
+  skip_final_snapshot             = false
+  final_snapshot_identifier       = "payremind-${var.environment}-final"
+  performance_insights_enabled    = true # 7-day retention is free
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+}

@@ -1,0 +1,8 @@
+domain_name      = "app.example.in"
+hosted_zone_id   = "Z0123456789ABCDEFGHIJ"
+alert_email      = "you@example.com"
+supplier_address = "Your registered address, Bengaluru, Karnataka"
+# Stage 2 (after secrets and the first image push):
+# image_tag         = "<git sha>"
+# app_desired_count = 1
+# reminders_enabled = true
