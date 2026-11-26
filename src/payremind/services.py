@@ -9,10 +9,17 @@ from sqlalchemy.orm import Session
 
 from payremind.core.ageing import AgeingItem, ageing_summary
 from payremind.core.schedule import InvoiceState, due_offset
-from payremind.core.upi import build_upi_link
 from payremind.importers.excel import ImportedRow
 from payremind.messaging.whatsapp import ReminderMessage, Sender, SendError
-from payremind.models import Customer, Invoice, InvoiceStatus, Promise, ReminderLog, Tenant
+from payremind.models import (
+    Customer,
+    Invoice,
+    InvoiceStatus,
+    OptOut,
+    Promise,
+    ReminderLog,
+    Tenant,
+)
 
 
 class NotFound(LookupError):
@@ -126,8 +133,34 @@ class RunResult:
     failed: int
 
 
-def run_reminders(session: Session, tenant: Tenant, today: date, sender: Sender) -> RunResult:
+def pay_url(base_url: str, invoice: Invoice) -> str:
+    return f"{base_url.rstrip('/')}/p/{invoice.pay_token}"
+
+
+def record_opt_out(session: Session, phone_e164: str) -> bool:
+    """Store a STOP reply. Returns False if the number had already opted out."""
+    if session.scalar(select(OptOut).where(OptOut.phone_e164 == phone_e164)) is not None:
+        return False
+    session.add(OptOut(phone_e164=phone_e164))
+    session.commit()
+    return True
+
+
+def get_invoice_by_pay_token(session: Session, token: str) -> tuple[Invoice, Tenant]:
+    inv = session.scalar(select(Invoice).where(Invoice.pay_token == token))
+    if inv is None:
+        raise NotFound("invoice not found")
+    tenant = session.get(Tenant, inv.tenant_id)
+    if tenant is None:  # pragma: no cover  (FK makes this impossible)
+        raise NotFound("invoice not found")
+    return inv, tenant
+
+
+def run_reminders(
+    session: Session, tenant: Tenant, today: date, sender: Sender, base_url: str
+) -> RunResult:
     sent = failed = 0
+    opted_out_phones = set(session.scalars(select(OptOut.phone_e164)))
     for inv in list_invoices(session, tenant, today):
         logs = session.scalars(
             select(ReminderLog.offset_days).where(
@@ -146,20 +179,19 @@ def run_reminders(session: Session, tenant: Tenant, today: date, sender: Sender)
             due_date=inv.due_date,
             balance=inv.balance,
             has_phone=bool(cust.phone_e164),
-            opted_out=cust.opted_out,
+            opted_out=cust.opted_out or cust.phone_e164 in opted_out_phones,
             active_promise_until=latest_promise,
             already_sent_offsets=frozenset(logs),
         )
         offset = due_offset(state, today)
         if offset is None or cust.phone_e164 is None:
             continue
-        link = build_upi_link(tenant.upi_vpa, tenant.payee_name, inv.balance, inv.number)
         msg = ReminderMessage(
             to_e164=cust.phone_e164,
             customer_name=cust.name,
             invoice_number=inv.number,
             amount_text=f"₹{inv.balance:,.2f}",
-            pay_link=link,
+            pay_link=pay_url(base_url, inv),
         )
         try:
             message_id = sender.send(msg)

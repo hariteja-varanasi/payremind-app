@@ -1,11 +1,14 @@
+import os
 from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
 
 from payremind.api.app import create_app
 from payremind.config import Settings
 from payremind.messaging.whatsapp import FakeSender
+from payremind.migrate import upgrade
 from payremind.models import Tenant
 from payremind.security import hash_token
 
@@ -23,9 +26,35 @@ def sender() -> FakeSender:
     return FakeSender()
 
 
+# Set to a Postgres URL (CI does) to run the whole suite against Postgres instead of SQLite.
+PG_URL = os.environ.get("PAYREMIND_TEST_DATABASE_URL")
+APP_SECRET = "test-app-secret"
+VERIFY_TOKEN = "test-verify-token"
+BASE_URL = "https://pay.example.in"
+
+
 @pytest.fixture
-def app_and_tokens(tmp_path, sender):
-    settings = Settings(database_url=f"sqlite:///{tmp_path}/t.db")
+def database_url(tmp_path):
+    if PG_URL:
+        engine = create_engine(PG_URL)
+        with engine.begin() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public"))
+        engine.dispose()
+        url = PG_URL
+    else:
+        url = f"sqlite:///{tmp_path}/t.db"
+    upgrade(url)
+    return url
+
+
+@pytest.fixture
+def app_and_tokens(database_url, sender):
+    settings = Settings(
+        database_url=database_url,
+        whatsapp_app_secret=APP_SECRET,
+        whatsapp_verify_token=VERIFY_TOKEN,
+        public_base_url=BASE_URL,
+    )
     app = create_app(settings, sender=sender, today=lambda: TODAY)
     factory = app.state.session_factory
     tokens = {"a": "token-a", "b": "token-b"}

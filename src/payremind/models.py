@@ -19,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from payremind.db import Base
+from payremind.security import new_pay_token
 
 
 class Tenant(Base):
@@ -64,6 +65,9 @@ class Invoice(Base):
         Enum(InvoiceStatus, native_enum=False), default=InvoiceStatus.OPEN
     )
 
+    # Unguessable token for the public pay page (/p/<token>). Not the invoice id.
+    pay_token: Mapped[str] = mapped_column(String(64), unique=True, default=new_pay_token)
+
     customer: Mapped[Customer] = relationship()
 
 
@@ -93,3 +97,13 @@ class ReminderLog(Base):
     offset_days: Mapped[int]
     sent_on: Mapped[date] = mapped_column(Date)
     provider_message_id: Mapped[str] = mapped_column(String(128), default="")
+
+
+class OptOut(Base):
+    """A phone number that replied STOP. Applies to every tenant: they share our sender number."""
+
+    __tablename__ = "opt_outs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    phone_e164: Mapped[str] = mapped_column(String(20), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

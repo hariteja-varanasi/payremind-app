@@ -43,7 +43,10 @@ def test_same_invoice_number_in_two_tenants(client, auth):
     assert len(client.get("/invoices", headers=auth["a"]).json()) == 3
 
 
-def test_b_reminders_use_b_upi(client, auth, sender):
+def test_b_reminders_link_to_b_upi(client, auth, sender):
     upload(client, auth["b"])
     client.post("/reminders/run", headers=auth["b"])
-    assert all("pa=b@okhdfc" in m.pay_link for m in sender.sent)
+    assert sender.sent
+    for m in sender.sent:
+        page = client.get(m.pay_link.removeprefix("https://pay.example.in")).text
+        assert "pa=b@okhdfc" in page and "a@okaxis" not in page

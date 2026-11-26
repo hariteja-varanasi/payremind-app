@@ -4,7 +4,8 @@ import argparse
 
 from payremind.config import get_settings
 from payremind.core.upi import validate_vpa
-from payremind.db import Base, make_engine, make_sessionmaker
+from payremind.db import make_engine, make_sessionmaker
+from payremind.migrate import upgrade
 from payremind.models import Tenant
 from payremind.security import hash_token, new_token
 
@@ -12,7 +13,6 @@ from payremind.security import hash_token, new_token
 def invite(name: str, upi_vpa: str, payee_name: str) -> tuple[int, str]:
     validate_vpa(upi_vpa)
     engine = make_engine(get_settings().database_url)
-    Base.metadata.create_all(engine)
     token = new_token()
     with make_sessionmaker(engine)() as session:
         tenant = Tenant(
@@ -30,7 +30,12 @@ def main(argv: list[str] | None = None) -> None:
     inv.add_argument("--name", required=True)
     inv.add_argument("--upi", required=True)
     inv.add_argument("--payee", required=True)
+    sub.add_parser("migrate", help="apply database migrations")
     args = parser.parse_args(argv)
+    if args.cmd == "migrate":
+        upgrade(get_settings().database_url)
+        print("database is up to date")
+        return
     tenant_id, token = invite(args.name, args.upi, args.payee)
     print(f"tenant {tenant_id} created. token (shown once): {token}")
 

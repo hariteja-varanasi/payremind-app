@@ -8,7 +8,7 @@ Public launch only after the gates at the bottom pass.
 2. Overdue list and ageing buckets (not due, 1–30, 31–60, 61–90, 90+). **Done (API).**
 3. Reminder rules: 3 days before, due day, 7 and 15 days late; one per step, idempotent,
    skipped when paid, opted out, no phone, or a promise to pay is active. **Done (logic + fake sender).**
-4. UPI link to the merchant's own UPI ID. **Done.** Pay page is next (see M2).
+4. UPI link to the merchant's own UPI ID, via an https pay page with QR. **Done.**
 5. Promise-to-pay tracking and mark-paid. **Done (API).**
 6. WhatsApp Cloud API sender with one utility template. **Code done; needs Meta account + template approval.**
 7. Razorpay subscriptions for our own fee. M4.
@@ -32,8 +32,8 @@ tests/         unit, API, and tenant-isolation gate tests
 - **M1 (this week):** scaffold, core logic, tests, CI. ✅
 - **M2:** Alembic migrations, Postgres, https pay page per invoice (`/p/<token>` with UPI
   button + QR) because WhatsApp doesn't reliably make `upi://` links tappable; STOP/opt-out
-  webhook; Hindi template.
-- **M3:** minimal web UI (HTMX + Jinja, no JS build), phone OTP sign-in, daily scheduler.
+  webhook. ✅ (Hindi template moved to M3, it needs Meta approval first.)
+- **M3:** Hindi template, minimal web UI (HTMX + Jinja, no JS build), phone OTP sign-in, daily scheduler.
 - **M4:** Razorpay subscriptions + GST invoice for our fee; privacy policy, terms, DPA.
 - **M5:** AWS beta deploy (below), invite first CAs and their clients.
 
