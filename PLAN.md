@@ -36,17 +36,13 @@ tests/         unit, API, and tenant-isolation gate tests
 - **M3:** Hindi template, minimal web UI (Jinja forms, no JS build), phone OTP sign-in over
   WhatsApp, daily scheduler command. ✅
 - **M4:** Razorpay subscriptions + GST invoice for our fee; privacy policy, terms, DPA (drafts). ✅
-- **M5:** AWS beta deploy (below), invite first CAs and their clients.
+- **M5:** AWS beta deploy: Terraform written and checked offline ✅; apply after Hari approves, then invite first CAs and their clients.
 
-## AWS beta (ap-south-1), target ~$50–150/month. Not created yet; needs Hari's go-ahead.
-- Lambda (container image, via Mangum) behind API Gateway HTTP API; CloudFront + WAF in front.
-- RDS Postgres db.t4g.micro, single-AZ for beta, encrypted with KMS, automated backups.
-- EventBridge Scheduler (timezone Asia/Kolkata, 09:30) runs `payremind run-reminders`.
-- WAF rate rule on `/login` and `/login/verify` per IP, on top of the app's per-phone limits.
-- Secrets Manager for WhatsApp/Razorpay keys; CloudTrail, GuardDuty, CloudWatch logs kept 180 days (CERT-In).
-- No NAT gateway; Lambda outside VPC for outbound calls, RDS reached via RDS Proxy or
-  a VPC Lambda with VPC endpoints (decide in M5 with the pricing calculator).
-- Terraform, budget alarm at $50 and $100.
+## AWS beta (ap-south-1)
+Terraform, cost estimate (~$70–82/month) and runbook: [infra/README.md](infra/README.md).
+CloudFront + WAF → ALB → ECS Fargate (ARM) → RDS Postgres, with EventBridge Scheduler for the
+09:30 IST job, CloudTrail, GuardDuty, 365-day logs and budget alarms. No NAT gateway.
+**Not applied yet: needs Hari's go-ahead.**
 
 ## Launch gates (before any public exposure)
 - Coverage ≥80% on core logic (currently 99% overall); 100% of tenant-isolation tests pass.

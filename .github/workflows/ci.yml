@@ -31,3 +31,22 @@ jobs:
         run: pytest --no-cov
         env:
           PAYREMIND_TEST_DATABASE_URL: postgresql+psycopg://payremind:payremind@localhost:5432/payremind_test
+
+  infra:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.0"
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - run: terraform test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install checkov && checkov -d . --config-file .checkov.yaml
