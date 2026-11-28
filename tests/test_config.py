@@ -33,6 +33,8 @@ def test_supabase_style_urls_are_normalised():
     assert Settings(database_url="postgresql://u:p@h/db?x=1").database_url.endswith(
         "?x=1&sslmode=require"
     )
+    local = "postgresql+psycopg://payremind:payremind@db:5432/payremind"
+    assert Settings(database_url=local).database_url == local
 
 
 def test_transaction_pooler_disables_prepared_statements():

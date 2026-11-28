@@ -75,12 +75,14 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _build_database_url(self) -> "Settings":
         url = self.database_url
-        # Accept URLs as Supabase and other hosts print them; always use psycopg and TLS.
+        # Accept URLs as Supabase and other hosts print them: use psycopg, and require TLS
+        # unless the URL says otherwise. Explicit postgresql+psycopg:// URLs (local Postgres,
+        # docker compose, CI) are used as given.
         for prefix in ("postgres://", "postgresql://"):
             if url.startswith(prefix):
                 url = "postgresql+psycopg://" + url.removeprefix(prefix)
-        if url.startswith("postgresql+psycopg://") and "sslmode=" not in url:
-            url += ("&" if "?" in url else "?") + "sslmode=require"
+                if "sslmode=" not in url:
+                    url += ("&" if "?" in url else "?") + "sslmode=require"
         self.database_url = url
         if self.db_host:
             self.database_url = (
