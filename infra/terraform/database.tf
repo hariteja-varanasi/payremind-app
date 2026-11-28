@@ -17,6 +17,7 @@ resource "aws_db_parameter_group" "pg16" {
 }
 
 resource "aws_db_instance" "main" {
+  # checkov:skip=CKV_AWS_293:On by default; off only when ephemeral = true so tests can be destroyed
   identifier                      = "payremind-${var.environment}"
   engine                          = "postgres"
   engine_version                  = "16"
@@ -38,8 +39,8 @@ resource "aws_db_instance" "main" {
   maintenance_window              = "sun:21:00-sun:22:00"
   auto_minor_version_upgrade      = true
   copy_tags_to_snapshot           = true
-  deletion_protection             = true
-  skip_final_snapshot             = false
+  deletion_protection             = !var.ephemeral
+  skip_final_snapshot             = var.ephemeral
   final_snapshot_identifier       = "payremind-${var.environment}-final"
   performance_insights_enabled    = true # 7-day retention is free
   enabled_cloudwatch_logs_exports = ["postgresql"]

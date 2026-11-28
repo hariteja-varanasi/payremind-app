@@ -1,5 +1,5 @@
 output "app_url" {
-  value = "https://${var.domain_name}"
+  value = local.public_url
 }
 
 output "ecr_repository_url" {
@@ -23,9 +23,13 @@ output "app_security_group" {
 }
 
 output "whatsapp_webhook_url" {
-  value = "https://${var.domain_name}/webhooks/whatsapp"
+  value = "${local.public_url}/webhooks/whatsapp"
 }
 
 output "razorpay_webhook_url" {
-  value = "https://${var.domain_name}/webhooks/razorpay"
+  value = "${local.public_url}/webhooks/razorpay"
+}
+
+output "app_log_group" {
+  value = aws_cloudwatch_log_group.app.name
 }

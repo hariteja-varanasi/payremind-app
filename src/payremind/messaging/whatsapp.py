@@ -1,9 +1,12 @@
 """WhatsApp senders. Reminders use a Meta-approved utility template with 4 variables."""
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import httpx
+
+log = logging.getLogger("payremind.dev")
 
 TEMPLATE_NAME = "payment_reminder_v1"  # submitted to Meta in "en" and "hi"
 OTP_TEMPLATE_NAME = "login_code_v1"  # authentication category, copy-code button
@@ -43,6 +46,26 @@ class FakeSender:
     def send_otp(self, to_e164: str, code: str) -> str:
         self.otps.append((to_e164, code))
         return f"fake-otp-{len(self.otps)}"
+
+
+class LogSender(FakeSender):
+    """Local development only: prints messages (including login codes) instead of sending."""
+
+    def send(self, msg: ReminderMessage) -> str:
+        log.warning(
+            "DEV WhatsApp reminder to %s [%s]: %s, invoice %s, %s, pay at %s",
+            msg.to_e164,
+            msg.language,
+            msg.customer_name,
+            msg.invoice_number,
+            msg.amount_text,
+            msg.pay_link,
+        )
+        return super().send(msg)
+
+    def send_otp(self, to_e164: str, code: str) -> str:
+        log.warning("DEV WhatsApp login code for %s: %s", to_e164, code)
+        return super().send_otp(to_e164, code)
 
 
 class CloudApiSender:
@@ -109,8 +132,11 @@ class CloudApiSender:
         return self._post(body)
 
 
-def make_sender(token: str, phone_number_id: str, base_url: str) -> Sender:
-    """Real sender when WhatsApp credentials are configured, otherwise the fake one."""
+def make_sender(token: str, phone_number_id: str, base_url: str, dev_log: bool = False) -> Sender:
+    """Real sender when WhatsApp credentials are configured, otherwise a fake one.
+
+    dev_log only applies without credentials, so it can never leak codes in production.
+    """
     if token and phone_number_id:
         return CloudApiSender(token, phone_number_id, base_url, httpx.Client())
-    return FakeSender()
+    return LogSender() if dev_log else FakeSender()

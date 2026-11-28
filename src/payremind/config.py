@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     # Keys OTP hashes. Required in production; if empty, a random per-process key is used,
     # so pending codes stop working after a restart.
     secret_key: str = ""
+    # Local development: print WhatsApp messages and login codes to the log instead of
+    # sending. Ignored whenever WhatsApp credentials are set.
+    dev_log_messages: bool = False
     cookie_secure: bool = True  # set false only for local http development
     session_days: int = 7
     # Razorpay (our own subscription fee). Plan ids come from the Razorpay dashboard.

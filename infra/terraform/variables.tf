@@ -9,13 +9,33 @@ variable "environment" {
 }
 
 variable "domain_name" {
-  description = "Public hostname for the app, e.g. app.payremind.in"
+  description = "Public hostname, e.g. app.payremind.in. Empty = use the CloudFront default URL (test mode only)"
   type        = string
+  default     = ""
+  validation {
+    condition     = var.domain_name != "" || var.ephemeral
+    error_message = "domain_name is required unless ephemeral = true."
+  }
 }
 
 variable "hosted_zone_id" {
-  description = "Route 53 hosted zone that contains domain_name (used for certificates and DNS)"
+  description = "Route 53 hosted zone that contains domain_name (not needed without a domain)"
   type        = string
+  default     = ""
+  validation {
+    condition     = var.domain_name == "" || var.hosted_zone_id != ""
+    error_message = "hosted_zone_id is required when domain_name is set."
+  }
+}
+
+variable "ephemeral" {
+  description = <<-EOT
+    Throwaway test stack: no deletion protection or final snapshot (so `terraform destroy`
+    removes everything), and WhatsApp messages plus login codes are written to the app log
+    instead of being sent. Never use for real customer data.
+  EOT
+  type        = bool
+  default     = false
 }
 
 variable "alert_email" {
@@ -75,4 +95,14 @@ variable "db_instance_class" {
 variable "enable_flow_logs" {
   type    = bool
   default = true
+}
+
+variable "cpu_architecture" {
+  description = "ARM64 (cheaper, Graviton) or X86_64 (match an Intel/AMD laptop to skip emulated builds)"
+  type        = string
+  default     = "ARM64"
+  validation {
+    condition     = contains(["ARM64", "X86_64"], var.cpu_architecture)
+    error_message = "cpu_architecture must be ARM64 or X86_64."
+  }
 }

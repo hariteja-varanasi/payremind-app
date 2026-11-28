@@ -61,7 +61,10 @@ def add_user(tenant_id: int, phone_raw: str) -> None:
 def run_reminders_daily() -> str:
     settings = get_settings()
     sender = make_sender(
-        settings.whatsapp_token, settings.whatsapp_phone_number_id, settings.whatsapp_api_base
+        settings.whatsapp_token,
+        settings.whatsapp_phone_number_id,
+        settings.whatsapp_api_base,
+        settings.dev_log_messages,
     )
     note = " (dry run: WhatsApp not configured)" if isinstance(sender, FakeSender) else ""
     with _sessions()() as session:

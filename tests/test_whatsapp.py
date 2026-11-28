@@ -64,3 +64,17 @@ def test_make_sender():
 
     assert isinstance(make_sender("", "", "https://x"), FakeSender)
     assert isinstance(make_sender("t", "1", "https://x"), CloudApiSender)
+
+
+def test_dev_log_sender(caplog):
+    from payremind.messaging.whatsapp import LogSender, make_sender
+
+    s = make_sender("", "", "https://x", dev_log=True)
+    assert isinstance(s, LogSender)
+    with caplog.at_level("WARNING", logger="payremind.dev"):
+        s.send_otp("+919845012345", "123456")
+        s.send(MSG)
+    assert "login code for +919845012345: 123456" in caplog.text
+    assert "INV-1" in caplog.text and s.otps and s.sent
+    # never used when real credentials exist
+    assert not isinstance(make_sender("t", "1", "https://x", dev_log=True), LogSender)
