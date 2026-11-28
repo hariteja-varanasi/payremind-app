@@ -1,8 +1,8 @@
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import text
 
 from payremind import models  # noqa: F401  (registers tables)
-from payremind.db import Base
+from payremind.db import Base, make_engine, validate_schema
 
 config = context.config
 target_metadata = Base.metadata
@@ -20,17 +20,27 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata, render_as_batch=True
-        )
-        with context.begin_transaction():
-            context.run_migrations()
+    url = config.get_main_option("sqlalchemy.url") or ""
+    schema = config.attributes.get("schema", "")
+    connectable = make_engine(url, schema)  # rejects SQLite + schema and bad names
+    if schema:
+        # Create the schema before search_path points at it.
+        admin = make_engine(url)
+        with admin.begin() as conn:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{validate_schema(schema)}"'))
+        admin.dispose()
+    try:
+        with connectable.connect() as connection:
+            context.configure(
+                connection=connection,
+                target_metadata=target_metadata,
+                render_as_batch=True,
+                version_table_schema=schema or None,
+            )
+            with context.begin_transaction():
+                context.run_migrations()
+    finally:
+        connectable.dispose()
 
 
 if context.is_offline_mode():

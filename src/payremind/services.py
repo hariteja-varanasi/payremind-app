@@ -201,6 +201,7 @@ def run_reminders(
             amount_text=f"₹{inv.balance:,.2f}",
             pay_link=pay_url(base_url, inv),
             language=cust.language,
+            tenant_id=tenant.id,
         )
         try:
             message_id = sender.send(msg)

@@ -61,18 +61,18 @@ resource "aws_iam_role_policy" "execution_secrets" {
   role = aws_iam_role.execution.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
+    Statement = concat(
+      [{
         Effect   = "Allow"
         Action   = ["ssm:GetParameters"]
         Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/payremind/${var.environment}/*"
-      },
-      {
+      }],
+      [for db in aws_db_instance.main : {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
-        Resource = aws_db_instance.main.master_user_secret[0].secret_arn
-      },
-    ]
+        Resource = db.master_user_secret[0].secret_arn
+      }],
+    )
   })
 }
 
@@ -90,19 +90,24 @@ locals {
     [
       { name = "PAYREMIND_SECRET_KEY", valueFrom = aws_ssm_parameter.secret_key.arn },
       { name = "PAYREMIND_WHATSAPP_VERIFY_TOKEN", valueFrom = aws_ssm_parameter.verify_token.arn },
-      { name = "PAYREMIND_DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
     ],
+    [for db in aws_db_instance.main : { name = "PAYREMIND_DB_PASSWORD", valueFrom = "${db.master_user_secret[0].secret_arn}:password::" }],
+    [for p in aws_ssm_parameter.database_url : { name = "PAYREMIND_DATABASE_URL", valueFrom = p.arn }],
   )
-  plain_env = [
-    { name = "PAYREMIND_DB_HOST", value = aws_db_instance.main.address },
-    { name = "PAYREMIND_DB_NAME", value = aws_db_instance.main.db_name },
-    { name = "PAYREMIND_DB_USER", value = aws_db_instance.main.username },
+  db_env = flatten([for db in aws_db_instance.main : [
+    { name = "PAYREMIND_DB_HOST", value = db.address },
+    { name = "PAYREMIND_DB_NAME", value = db.db_name },
+    { name = "PAYREMIND_DB_USER", value = db.username },
+  ]])
+  plain_env = concat(local.db_env, [
+    { name = "PAYREMIND_DB_SCHEMA", value = var.db_schema },
+    { name = "PAYREMIND_DEMO_MODE", value = var.demo_mode ? "true" : "false" },
     { name = "PAYREMIND_PUBLIC_BASE_URL", value = local.public_url },
     { name = "PAYREMIND_DEV_LOG_MESSAGES", value = var.ephemeral ? "true" : "false" },
     { name = "PAYREMIND_SUPPLIER_NAME", value = var.supplier_name },
     { name = "PAYREMIND_SUPPLIER_STATE_CODE", value = var.supplier_state_code },
     { name = "PAYREMIND_SUPPLIER_ADDRESS", value = var.supplier_address },
-  ]
+  ])
 }
 
 resource "aws_ecs_task_definition" "app" {

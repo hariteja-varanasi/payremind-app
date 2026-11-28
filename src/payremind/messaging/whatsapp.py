@@ -12,6 +12,20 @@ TEMPLATE_NAME = "payment_reminder_v1"  # submitted to Meta in "en" and "hi"
 OTP_TEMPLATE_NAME = "login_code_v1"  # authentication category, copy-code button
 
 
+# The approved template bodies (docs/whatsapp-templates.md), used to preview messages in demos.
+TEMPLATE_TEXT = {
+    "en": (
+        "Hello {name}, this is a reminder that payment for invoice {number} of {amount} "
+        "is pending. You can pay securely here: {link}\n\nReply STOP to stop these reminders."
+    ),
+    "hi": (
+        "नमस्ते {name}, यह याद दिलाने के लिए है कि इनवॉइस {number} के {amount} का भुगतान "
+        "बाकी है। आप यहाँ सुरक्षित रूप से भुगतान कर सकते हैं: {link}\n\n"
+        "ये रिमाइंडर बंद करने के लिए STOP लिखकर भेजें।"
+    ),
+}
+
+
 @dataclass(frozen=True)
 class ReminderMessage:
     to_e164: str
@@ -20,6 +34,15 @@ class ReminderMessage:
     amount_text: str
     pay_link: str
     language: str = "en"
+    tenant_id: int = 0  # lets the demo outbox show each business only its own messages
+
+    def preview(self) -> str:
+        return TEMPLATE_TEXT.get(self.language, TEMPLATE_TEXT["en"]).format(
+            name=self.customer_name,
+            number=self.invoice_number,
+            amount=self.amount_text,
+            link=self.pay_link,
+        )
 
 
 class Sender(Protocol):

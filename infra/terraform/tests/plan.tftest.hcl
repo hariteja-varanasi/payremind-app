@@ -56,11 +56,11 @@ run "defaults_are_safe" {
     error_message = "Daily job must start disabled"
   }
   assert {
-    condition     = aws_db_instance.main.publicly_accessible == false && aws_db_instance.main.storage_encrypted
+    condition     = aws_db_instance.main[0].publicly_accessible == false && aws_db_instance.main[0].storage_encrypted
     error_message = "Database must be private and encrypted"
   }
   assert {
-    condition     = aws_db_instance.main.deletion_protection
+    condition     = aws_db_instance.main[0].deletion_protection
     error_message = "Database needs deletion protection"
   }
   assert {
@@ -106,7 +106,7 @@ run "ephemeral_test_mode_without_domain" {
     error_message = "Test mode uses the HTTP origin listener"
   }
   assert {
-    condition     = aws_db_instance.main.deletion_protection == false && aws_db_instance.main.skip_final_snapshot
+    condition     = aws_db_instance.main[0].deletion_protection == false && aws_db_instance.main[0].skip_final_snapshot
     error_message = "Test stack must be fully destroyable"
   }
   assert {
@@ -126,4 +126,58 @@ run "domain_required_outside_test_mode" {
     ephemeral   = false
   }
   expect_failures = [var.domain_name]
+}
+
+run "demo_on_external_postgres" {
+  command = plan
+  variables {
+    domain_name       = ""
+    hosted_zone_id    = ""
+    ephemeral         = true
+    external_database = true
+    demo_mode         = true
+    db_schema         = "staging"
+  }
+  assert {
+    condition     = length(aws_db_instance.main) == 0 && length(aws_db_subnet_group.main) == 0
+    error_message = "No RDS when the database is external"
+  }
+  assert {
+    condition     = length(aws_ssm_parameter.database_url) == 1 && aws_ssm_parameter.database_url[0].value == "unset"
+    error_message = "Database URL is an SSM placeholder, never a Terraform value"
+  }
+  assert {
+    condition     = length(aws_vpc_security_group_egress_rule.app_to_external_db) == 1 && length(aws_vpc_security_group_egress_rule.app_to_db) == 0
+    error_message = "App reaches the external Postgres on 5432 only"
+  }
+  assert {
+    condition     = contains(local.plain_env, { name = "PAYREMIND_DEMO_MODE", value = "true" }) && contains(local.plain_env, { name = "PAYREMIND_DB_SCHEMA", value = "staging" })
+    error_message = "Demo mode and schema reach the app"
+  }
+  assert {
+    condition     = aws_scheduler_schedule.reminders.state == "DISABLED"
+    error_message = "No daily job in a demo"
+  }
+}
+
+run "demo_never_on_prod_schema" {
+  command = plan
+  variables {
+    domain_name       = ""
+    hosted_zone_id    = ""
+    ephemeral         = true
+    external_database = true
+    demo_mode         = true
+    db_schema         = "prod"
+  }
+  expect_failures = [var.demo_mode]
+}
+
+run "demo_needs_ephemeral" {
+  command = plan
+  variables {
+    demo_mode = true
+    db_schema = "dev"
+  }
+  expect_failures = [var.demo_mode]
 }

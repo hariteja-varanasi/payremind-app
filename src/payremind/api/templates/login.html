@@ -10,5 +10,10 @@
     <p><button type="submit">Send me a code</button></p>
   </form>
   <p class="muted">PayRemind is invite-only during the beta.</p>
+  {% if demo %}
+  <form method="post" action="/login/demo">
+    <p><button class="secondary" type="submit">Open the demo business (Sharma Distributors)</button></p>
+  </form>
+  {% endif %}
 </div>
 {% endblock %}

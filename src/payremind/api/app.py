@@ -121,7 +121,7 @@ def create_app(
     gateway: BillingGateway | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
-    engine = make_engine(settings.database_url)
+    engine = make_engine(settings.database_url, settings.db_schema)
     # Schema is managed by Alembic: run `payremind migrate` before starting the app.
     factory: sessionmaker[Session] = make_sessionmaker(engine)
     reminder_sender: Sender = sender or make_sender(

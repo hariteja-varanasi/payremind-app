@@ -1,0 +1,11 @@
+# Demo stack: app on AWS for a few hours, data in Supabase Postgres (kept between demos).
+ephemeral          = true
+external_database  = true
+demo_mode          = true
+db_schema          = "staging" # dev, test or staging; never prod
+alert_email        = "you@example.com"
+monthly_budget_usd = 10
+allowed_countries  = ["IN"] # add country codes of anyone opening the demo from abroad
+# After the first image push:
+# image_tag         = "<git sha>"
+# app_desired_count = 1

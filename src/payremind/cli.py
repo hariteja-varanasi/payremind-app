@@ -7,10 +7,12 @@ from datetime import timedelta
 from sqlalchemy.orm import Session, sessionmaker
 
 from payremind.api.app import today_ist
+from payremind.billing.service import Supplier
 from payremind.config import get_settings
 from payremind.core.phone import normalize_indian_mobile
 from payremind.core.upi import validate_vpa
-from payremind.db import make_engine, make_sessionmaker
+from payremind.db import PROTECTED_SCHEMAS, SCHEMAS, make_engine, make_sessionmaker, validate_schema
+from payremind.demo import seed_demo
 from payremind.messaging.whatsapp import FakeSender, make_sender
 from payremind.migrate import upgrade
 from payremind.models import Tenant, User
@@ -19,7 +21,20 @@ from payremind.services import run_all_tenants
 
 
 def _sessions() -> sessionmaker[Session]:
-    return make_sessionmaker(make_engine(get_settings().database_url))
+    settings = get_settings()
+    return make_sessionmaker(make_engine(settings.database_url, settings.db_schema))
+
+
+def migrate_cmd(schemas: str | None) -> str:
+    """Migrate the configured database, or each listed schema (e.g. dev,test,staging,prod)."""
+    settings = get_settings()
+    if not schemas:
+        upgrade(settings.database_url, schema=settings.db_schema)
+        return "database is up to date"
+    names = [validate_schema(n.strip()) for n in schemas.split(",") if n.strip()]
+    for name in names:
+        upgrade(settings.database_url, schema=name)
+    return f"schemas up to date: {', '.join(names)}"
 
 
 def invite(
@@ -58,6 +73,24 @@ def add_user(tenant_id: int, phone_raw: str) -> None:
         session.commit()
 
 
+def seed_demo_cmd() -> str:
+    settings = get_settings()
+    if not settings.demo_mode:
+        raise ValueError("seed-demo only runs with PAYREMIND_DEMO_MODE=true")
+    if not settings.database_url.startswith("sqlite") and (
+        settings.db_schema in PROTECTED_SCHEMAS or not settings.db_schema
+    ):
+        raise ValueError(
+            "seed-demo on Postgres needs PAYREMIND_DB_SCHEMA set to dev, test or staging"
+        )
+    supplier = Supplier(settings.supplier_gstin, settings.supplier_state_code)
+    with _sessions()() as session:
+        tenant = seed_demo(session, today_ist(), supplier)
+        return (
+            f"demo business {tenant.name!r} ready (tenant {tenant.id}); other businesses untouched"
+        )
+
+
 def run_reminders_daily() -> str:
     settings = get_settings()
     sender = make_sender(
@@ -84,18 +117,26 @@ def main(argv: list[str] | None = None) -> int:
     au = sub.add_parser("add-user", help="let another phone sign in to a business")
     au.add_argument("--tenant", type=int, required=True)
     au.add_argument("--phone", required=True)
-    sub.add_parser("migrate", help="apply database migrations")
+    mig = sub.add_parser("migrate", help="apply database migrations")
+    mig.add_argument(
+        "--schemas",
+        help=f"comma-separated Postgres schemas to create and migrate, e.g. {','.join(SCHEMAS)}",
+    )
+    sub.add_parser(
+        "seed-demo", help="(re)create the dummy demo business; needs PAYREMIND_DEMO_MODE=true"
+    )
     sub.add_parser("run-reminders", help="daily job: send due reminders for every business")
     args = parser.parse_args(argv)
     try:
         if args.cmd == "migrate":
-            upgrade(get_settings().database_url)
-            print("database is up to date")
+            print(migrate_cmd(args.schemas))
         elif args.cmd == "invite":
             tenant_id, token = invite(
                 args.name, args.upi, args.payee, args.owner_phone, args.trial_days
             )
             print(f"tenant {tenant_id} created. API token (shown once): {token}")
+        elif args.cmd == "seed-demo":
+            print(seed_demo_cmd())
         elif args.cmd == "add-user":
             add_user(args.tenant, args.phone)
             print("user added")

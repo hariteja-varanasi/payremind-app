@@ -33,3 +33,8 @@ output "razorpay_webhook_url" {
 output "app_log_group" {
   value = aws_cloudwatch_log_group.app.name
 }
+
+output "database_url_parameter" {
+  description = "Put the external Postgres URL here with aws ssm put-parameter (external_database only)"
+  value       = one(aws_ssm_parameter.database_url[*].name)
+}
