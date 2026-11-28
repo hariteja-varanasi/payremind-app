@@ -114,6 +114,7 @@ resource "aws_vpc_security_group_egress_rule" "app_https_out" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "app_to_db" {
+  count                        = local.use_rds ? 1 : 0
   security_group_id            = aws_security_group.app.id
   description                  = "Postgres"
   referenced_security_group_id = aws_security_group.db.id
@@ -126,6 +127,16 @@ resource "aws_security_group" "db" {
   name        = "payremind-db"
   description = "Postgres from app tasks only"
   vpc_id      = aws_vpc.main.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "app_to_external_db" {
+  count             = var.external_database ? 1 : 0
+  security_group_id = aws_security_group.app.id
+  description       = "External Postgres (Supabase pooler); TLS enforced by the app"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = 5432
+  to_port           = 5432
 }
 
 resource "aws_vpc_security_group_ingress_rule" "db_from_app" {

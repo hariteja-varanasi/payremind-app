@@ -1,9 +1,16 @@
+# Skipped when external_database = true (e.g. Supabase): the app gets a URL from SSM instead.
+locals {
+  use_rds = !var.external_database
+}
+
 resource "aws_db_subnet_group" "main" {
+  count      = local.use_rds ? 1 : 0
   name       = "payremind-${var.environment}"
   subnet_ids = aws_subnet.private[*].id
 }
 
 resource "aws_db_parameter_group" "pg16" {
+  count  = local.use_rds ? 1 : 0
   name   = "payremind-pg16"
   family = "postgres16"
   parameter {
@@ -18,6 +25,7 @@ resource "aws_db_parameter_group" "pg16" {
 
 resource "aws_db_instance" "main" {
   # checkov:skip=CKV_AWS_293:On by default; off only when ephemeral = true so tests can be destroyed
+  count                           = local.use_rds ? 1 : 0
   identifier                      = "payremind-${var.environment}"
   engine                          = "postgres"
   engine_version                  = "16"
@@ -29,9 +37,9 @@ resource "aws_db_instance" "main" {
   db_name                         = "payremind"
   username                        = "payremind"
   manage_master_user_password     = true # RDS keeps the password in Secrets Manager and rotates it
-  db_subnet_group_name            = aws_db_subnet_group.main.name
+  db_subnet_group_name            = aws_db_subnet_group.main[0].name
   vpc_security_group_ids          = [aws_security_group.db.id]
-  parameter_group_name            = aws_db_parameter_group.pg16.name
+  parameter_group_name            = aws_db_parameter_group.pg16[0].name
   publicly_accessible             = false
   multi_az                        = false # beta; switch on before public launch if budget allows
   backup_retention_period         = 7

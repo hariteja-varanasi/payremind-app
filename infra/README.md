@@ -2,6 +2,8 @@
 
 For a short throwaway test on your own account (no domain, about $0.10/hour, destroy the same day), see [TEST-DEPLOY.md](TEST-DEPLOY.md).
 
+For a demo stack whose data lives in Supabase Postgres (dev, test, staging and prod schemas; AWS up only during the demo), see [DEMO.md](DEMO.md).
+
 Terraform in `infra/terraform` creates everything below. **Nothing has been applied.** Review
 the cost estimate and the plan output before running `terraform apply`.
 

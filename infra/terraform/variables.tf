@@ -106,3 +106,43 @@ variable "cpu_architecture" {
     error_message = "cpu_architecture must be ARM64 or X86_64."
   }
 }
+
+variable "external_database" {
+  description = <<-EOT
+    Use a Postgres outside AWS (e.g. Supabase) instead of creating RDS. Set its URL in SSM
+    at /payremind/<environment>/database_url with `aws ssm put-parameter` (never in tfvars).
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "db_schema" {
+  description = "Postgres schema this stack uses: dev, test, staging or prod. Empty = default."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.db_schema == "" || can(regex("^[a-z_][a-z0-9_]{0,30}$", var.db_schema))
+    error_message = "db_schema must be a lowercase Postgres name such as dev, test, staging or prod."
+  }
+}
+
+variable "demo_mode" {
+  description = <<-EOT
+    Demo stack: one-click demo login, outbox page and DEMO banner. The app refuses to start
+    with real WhatsApp or Razorpay keys. Needs ephemeral = true and never the prod schema.
+  EOT
+  type        = bool
+  default     = false
+  validation {
+    condition     = !var.demo_mode || var.ephemeral
+    error_message = "demo_mode needs ephemeral = true."
+  }
+  validation {
+    condition     = !var.demo_mode || !contains(["prod", "public"], var.db_schema)
+    error_message = "demo_mode can't use the prod or public schema; use dev, test or staging."
+  }
+  validation {
+    condition     = !var.demo_mode || !var.reminders_enabled
+    error_message = "demo_mode keeps the daily reminder job off."
+  }
+}

@@ -85,6 +85,10 @@ def verify_otp(
     if user is None:  # pragma: no cover  (codes are only issued to existing users)
         session.commit()
         return None
+    return create_session(session, user, now, session_days)
+
+
+def create_session(session: Session, user: User, now: int, session_days: int) -> NewSession:
     token, csrf = new_token(), new_token()
     session.add(
         WebSession(

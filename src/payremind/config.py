@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Terraform creates SSM parameters with this placeholder until real values are set.
 UNSET = "unset"
+DEMO_SUPPLIER_GSTIN = "29ABCDE1234F1ZW"  # made up, valid check digit; demo invoices only
 
 
 class Settings(BaseSettings):
@@ -19,6 +20,8 @@ class Settings(BaseSettings):
     db_name: str = "payremind"
     db_user: str = "payremind"
     db_password: str = ""
+    # Postgres schema for this environment (dev/test/staging/prod); "" = default search_path
+    db_schema: str = ""
     # WhatsApp Cloud API. Leave empty in dev: the fake sender is used instead.
     whatsapp_token: str = ""
     whatsapp_phone_number_id: str = ""
@@ -32,6 +35,9 @@ class Settings(BaseSettings):
     # Local development: print WhatsApp messages and login codes to the log instead of
     # sending. Ignored whenever WhatsApp credentials are set.
     dev_log_messages: bool = False
+    # Demo: one-click sign-in to the seeded demo business, a DEMO banner and a message outbox.
+    # Refuses to start if real WhatsApp or Razorpay credentials are configured.
+    demo_mode: bool = False
     cookie_secure: bool = True  # set false only for local http development
     session_days: int = 7
     # Razorpay (our own subscription fee). Plan ids come from the Razorpay dashboard.
@@ -56,7 +62,26 @@ class Settings(BaseSettings):
         return data  # pragma: no cover
 
     @model_validator(mode="after")
+    def _demo_is_offline(self) -> "Settings":
+        if self.demo_mode:
+            if self.whatsapp_token or self.razorpay_key_id or self.razorpay_key_secret:
+                raise ValueError("demo_mode cannot be used with real WhatsApp or Razorpay keys")
+            if self.db_schema == "prod":
+                raise ValueError("demo_mode cannot use the prod schema")
+            self.dev_log_messages = True
+            self.supplier_gstin = self.supplier_gstin or DEMO_SUPPLIER_GSTIN
+        return self
+
+    @model_validator(mode="after")
     def _build_database_url(self) -> "Settings":
+        url = self.database_url
+        # Accept URLs as Supabase and other hosts print them; always use psycopg and TLS.
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                url = "postgresql+psycopg://" + url.removeprefix(prefix)
+        if url.startswith("postgresql+psycopg://") and "sslmode=" not in url:
+            url += ("&" if "?" in url else "?") + "sslmode=require"
+        self.database_url = url
         if self.db_host:
             self.database_url = (
                 f"postgresql+psycopg://{quote(self.db_user, safe='')}:"

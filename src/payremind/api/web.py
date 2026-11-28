@@ -21,9 +21,10 @@ from payremind.billing.razorpay import BillingError, BillingGateway
 from payremind.billing.service import PLANS, billing_ready, can_send
 from payremind.config import Settings
 from payremind.core.phone import normalize_indian_mobile
+from payremind.demo import DEMO_PHONE
 from payremind.importers.excel import ImportFormatError, parse_invoices
-from payremind.messaging.whatsapp import Sender
-from payremind.models import BillingInvoice, Promise, Tenant, WebSession
+from payremind.messaging.whatsapp import FakeSender, Sender
+from payremind.models import BillingInvoice, Promise, Tenant, User, WebSession
 from payremind.security import hmac_equal
 
 COOKIE = "pr_session"
@@ -65,7 +66,7 @@ FLASH = {
 }
 
 
-def page(name: str, status_code: int = 200, **ctx: Any) -> HTMLResponse:
+def _page(name: str, status_code: int = 200, **ctx: Any) -> HTMLResponse:
     return HTMLResponse(
         TEMPLATES.get_template(name).render(**ctx), status_code=status_code, headers=HEADERS
     )
@@ -81,6 +82,9 @@ def register_web(
     today: Callable[[], date],
     gateway: BillingGateway | None = None,
 ) -> None:
+    def page(name: str, status_code: int = 200, **ctx: Any) -> HTMLResponse:
+        return _page(name, status_code, demo=settings.demo_mode, **ctx)
+
     def get_session() -> Iterator[Session]:
         with factory() as session:
             yield session
@@ -200,6 +204,33 @@ def register_web(
             samesite="lax",
         )
         return resp
+
+    @app.post("/login/demo", include_in_schema=False)
+    def demo_login(session: SessionDep) -> Response:
+        if not settings.demo_mode:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        user = session.scalar(select(User).where(User.phone_e164 == DEMO_PHONE))
+        if user is None:
+            return page("login.html", 503, flash="Demo data isn't loaded. Run: payremind seed-demo")
+        new = auth.create_session(session, user, now(), 1)
+        resp = RedirectResponse("/app", status_code=status.HTTP_303_SEE_OTHER)
+        resp.set_cookie(
+            COOKIE,
+            new.token,
+            max_age=86400,
+            httponly=True,
+            secure=settings.cookie_secure,
+            samesite="lax",
+        )
+        return resp
+
+    @app.get("/app/outbox", response_class=HTMLResponse, include_in_schema=False)
+    def outbox(user: WebUser) -> HTMLResponse:
+        if not settings.demo_mode or not isinstance(sender, FakeSender):
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        ws, tenant = user
+        messages = [m for m in reversed(sender.sent) if m.tenant_id == tenant.id]
+        return page("outbox.html", tenant=tenant, csrf=ws.csrf_token, messages=messages)
 
     @app.post("/logout", include_in_schema=False)
     def logout(

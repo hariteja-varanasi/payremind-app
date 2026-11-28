@@ -52,3 +52,15 @@ resource "aws_ssm_parameter" "verify_token" {
   type  = "SecureString"
   value = random_password.verify_token.result
 }
+
+# External Postgres URL (Supabase session pooler). Placeholder only; set the real value with
+# `aws ssm put-parameter --overwrite --type SecureString` so it never enters state or git.
+resource "aws_ssm_parameter" "database_url" {
+  count = var.external_database ? 1 : 0
+  name  = "/payremind/${var.environment}/database_url"
+  type  = "SecureString"
+  value = "unset"
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
