@@ -1,0 +1,43 @@
+# Local full stack: Postgres + app in dev-log mode (no real WhatsApp or Razorpay calls).
+#   docker compose up --build
+#   docker compose run --rm app payremind invite --name "Demo" --upi demo@okaxis \
+#       --payee "Demo" --owner-phone 9000000001 --trial-days 0
+#   open http://localhost:8000/login  (login codes appear in `docker compose logs app`)
+#   python scripts/smoke_test.py --base-url http://localhost:8000 --phone 9000000001 \
+#       --log-file <(docker compose logs --no-log-prefix app)   # or save logs to a file first
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: payremind
+      POSTGRES_PASSWORD: payremind
+      POSTGRES_DB: payremind
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payremind"]
+      interval: 3s
+      retries: 20
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  migrate:
+    build: .
+    command: ["payremind", "migrate"]
+    environment: &env
+      PAYREMIND_DATABASE_URL: postgresql+psycopg://payremind:payremind@db:5432/payremind
+      PAYREMIND_DEV_LOG_MESSAGES: "true"
+      PAYREMIND_COOKIE_SECURE: "false"
+      PAYREMIND_SECRET_KEY: local-dev-only-secret
+      PAYREMIND_PUBLIC_BASE_URL: http://localhost:8000
+    depends_on:
+      db: { condition: service_healthy }
+
+  app:
+    build: .
+    read_only: true          # same as on AWS
+    tmpfs: [/tmp]
+    environment: *env
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  pgdata:

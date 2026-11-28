@@ -125,7 +125,10 @@ def create_app(
     # Schema is managed by Alembic: run `payremind migrate` before starting the app.
     factory: sessionmaker[Session] = make_sessionmaker(engine)
     reminder_sender: Sender = sender or make_sender(
-        settings.whatsapp_token, settings.whatsapp_phone_number_id, settings.whatsapp_api_base
+        settings.whatsapp_token,
+        settings.whatsapp_phone_number_id,
+        settings.whatsapp_api_base,
+        settings.dev_log_messages,
     )
     secret_key = settings.secret_key or secrets.token_hex(32)
     billing_gateway = gateway or make_gateway(

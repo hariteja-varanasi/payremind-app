@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "app" {
   name                 = "payremind"
   image_tag_mutability = "IMMUTABLE"
+  force_delete         = var.ephemeral
   image_scanning_configuration {
     scan_on_push = true
   }
@@ -96,7 +97,8 @@ locals {
     { name = "PAYREMIND_DB_HOST", value = aws_db_instance.main.address },
     { name = "PAYREMIND_DB_NAME", value = aws_db_instance.main.db_name },
     { name = "PAYREMIND_DB_USER", value = aws_db_instance.main.username },
-    { name = "PAYREMIND_PUBLIC_BASE_URL", value = "https://${var.domain_name}" },
+    { name = "PAYREMIND_PUBLIC_BASE_URL", value = local.public_url },
+    { name = "PAYREMIND_DEV_LOG_MESSAGES", value = var.ephemeral ? "true" : "false" },
     { name = "PAYREMIND_SUPPLIER_NAME", value = var.supplier_name },
     { name = "PAYREMIND_SUPPLIER_STATE_CODE", value = var.supplier_state_code },
     { name = "PAYREMIND_SUPPLIER_ADDRESS", value = var.supplier_address },
@@ -112,7 +114,7 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
   runtime_platform {
-    cpu_architecture        = "ARM64" # Graviton: ~20% cheaper than x86
+    cpu_architecture        = var.cpu_architecture # ARM64 (Graviton) is ~20% cheaper
     operating_system_family = "LINUX"
   }
   # Writable /tmp (uploads over 1 MB spool to disk) while the root filesystem stays read-only.
@@ -169,13 +171,13 @@ resource "aws_ecs_service" "app" {
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
   health_check_grace_period_seconds  = 30
-  depends_on                         = [aws_lb_listener.https]
+  depends_on                         = [aws_lb_listener.https, aws_lb_listener.http]
 }
 
 # --- Load balancer (reachable only from CloudFront with the shared origin header) ---
 resource "aws_s3_bucket" "logs" {
   bucket        = "payremind-logs-${data.aws_caller_identity.current.account_id}"
-  force_destroy = false
+  force_destroy = var.ephemeral
 }
 
 resource "aws_s3_bucket_public_access_block" "logs" {
@@ -263,13 +265,15 @@ resource "aws_s3_bucket_policy" "logs" {
 }
 
 resource "aws_lb" "app" {
+  # checkov:skip=CKV_AWS_150:On by default; off only when ephemeral = true so tests can be destroyed
+  # checkov:skip=CKV2_AWS_20:Only CloudFront can reach the ALB; viewers are redirected to HTTPS at CloudFront
   name                       = "payremind-${var.environment}"
   load_balancer_type         = "application"
   internal                   = false
   security_groups            = [aws_security_group.alb.id]
   subnets                    = aws_subnet.public[*].id
   drop_invalid_header_fields = true
-  enable_deletion_protection = true
+  enable_deletion_protection = !var.ephemeral
   idle_timeout               = 60
   access_logs {
     bucket  = aws_s3_bucket.logs.id
@@ -296,11 +300,12 @@ resource "aws_lb_target_group" "app" {
 }
 
 resource "aws_lb_listener" "https" {
+  count             = local.use_domain ? 1 : 0
   load_balancer_arn = aws_lb.app.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = aws_acm_certificate_validation.origin.certificate_arn
+  certificate_arn   = aws_acm_certificate_validation.origin[0].certificate_arn
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -311,8 +316,31 @@ resource "aws_lb_listener" "https" {
   }
 }
 
+# Test mode only (no domain, so no certificate for the origin): CloudFront reaches the ALB over
+# HTTP inside AWS's network. Still limited to CloudFront ranges plus the secret header.
+resource "aws_lb_listener" "http" {
+  # checkov:skip=CKV_AWS_2:Test mode only (no domain, so no origin certificate); CloudFront-only + secret header
+  # checkov:skip=CKV_AWS_103:Test mode only, see above
+  count             = local.use_domain ? 0 : 1
+  load_balancer_arn = aws_lb.app.arn
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Forbidden"
+      status_code  = "403"
+    }
+  }
+}
+
+locals {
+  listener_arn = local.use_domain ? aws_lb_listener.https[0].arn : aws_lb_listener.http[0].arn
+}
+
 resource "aws_lb_listener_rule" "from_cloudfront" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = local.listener_arn
   priority     = 10
   condition {
     http_header {

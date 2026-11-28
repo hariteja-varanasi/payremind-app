@@ -1,0 +1,8 @@
+# Throwaway test stack: no domain, CloudFront default URL, destroyable, messages only logged.
+ephemeral          = true
+alert_email        = "you@example.com"
+monthly_budget_usd = 10
+allowed_countries  = ["IN"] # add your country code if you test from outside India
+# After the first image push:
+# image_tag         = "<git sha>"
+# app_desired_count = 1

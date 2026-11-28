@@ -1,11 +1,15 @@
 # DNS + certificates + CloudFront + WAF. Viewers reach https://<domain_name>; CloudFront talks
 # to the ALB at origin.<domain_name> and adds a secret header the ALB checks.
 locals {
+  use_domain    = var.domain_name != ""
   origin_domain = "origin.${var.domain_name}"
+  public_host   = local.use_domain ? var.domain_name : aws_cloudfront_distribution.app.domain_name
+  public_url    = "https://${local.public_host}"
 }
 
 # --- Certificates ---
 resource "aws_acm_certificate" "origin" {
+  count             = local.use_domain ? 1 : 0
   domain_name       = local.origin_domain
   validation_method = "DNS"
   lifecycle {
@@ -14,6 +18,7 @@ resource "aws_acm_certificate" "origin" {
 }
 
 resource "aws_acm_certificate" "viewer" {
+  count             = local.use_domain ? 1 : 0
   provider          = aws.us_east_1
   domain_name       = var.domain_name
   validation_method = "DNS"
@@ -24,10 +29,10 @@ resource "aws_acm_certificate" "viewer" {
 
 # Static keys so planning works before the certificates exist (one name per certificate).
 resource "aws_route53_record" "cert_validation" {
-  for_each = {
-    origin = aws_acm_certificate.origin
-    viewer = aws_acm_certificate.viewer
-  }
+  for_each = local.use_domain ? {
+    origin = aws_acm_certificate.origin[0]
+    viewer = aws_acm_certificate.viewer[0]
+  } : {}
   zone_id         = var.hosted_zone_id
   name            = one(each.value.domain_validation_options).resource_record_name
   type            = one(each.value.domain_validation_options).resource_record_type
@@ -37,17 +42,20 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 resource "aws_acm_certificate_validation" "origin" {
-  certificate_arn         = aws_acm_certificate.origin.arn
+  count                   = local.use_domain ? 1 : 0
+  certificate_arn         = aws_acm_certificate.origin[0].arn
   validation_record_fqdns = [aws_route53_record.cert_validation["origin"].fqdn]
 }
 
 resource "aws_acm_certificate_validation" "viewer" {
+  count                   = local.use_domain ? 1 : 0
   provider                = aws.us_east_1
-  certificate_arn         = aws_acm_certificate.viewer.arn
+  certificate_arn         = aws_acm_certificate.viewer[0].arn
   validation_record_fqdns = [aws_route53_record.cert_validation["viewer"].fqdn]
 }
 
 resource "aws_route53_record" "origin" {
+  count   = local.use_domain ? 1 : 0
   zone_id = var.hosted_zone_id
   name    = local.origin_domain
   type    = "A"
@@ -59,6 +67,7 @@ resource "aws_route53_record" "origin" {
 }
 
 resource "aws_route53_record" "app" {
+  count   = local.use_domain ? 1 : 0
   zone_id = var.hosted_zone_id
   name    = var.domain_name
   type    = "A"
@@ -268,20 +277,21 @@ resource "aws_cloudfront_response_headers_policy" "hsts" {
 }
 
 resource "aws_cloudfront_distribution" "app" {
+  # checkov:skip=CKV_AWS_174:TLS 1.2 minimum with a domain; the *.cloudfront.net certificate in test mode cannot set it
   enabled         = true
   is_ipv6_enabled = true
-  aliases         = [var.domain_name]
+  aliases         = local.use_domain ? [var.domain_name] : []
   price_class     = "PriceClass_200" # includes India edge locations
   web_acl_id      = aws_wafv2_web_acl.app.arn
   http_version    = "http2and3"
 
   origin {
     origin_id   = "alb"
-    domain_name = local.origin_domain
+    domain_name = local.use_domain ? local.origin_domain : aws_lb.app.dns_name
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = local.use_domain ? "https-only" : "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
     custom_header {
@@ -308,8 +318,10 @@ resource "aws_cloudfront_distribution" "app" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate_validation.viewer.certificate_arn
-    ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1.2_2021"
+    # With a domain: our ACM certificate. Test mode: CloudFront's *.cloudfront.net certificate.
+    cloudfront_default_certificate = !local.use_domain
+    acm_certificate_arn            = local.use_domain ? aws_acm_certificate_validation.viewer[0].certificate_arn : null
+    ssl_support_method             = local.use_domain ? "sni-only" : null
+    minimum_protocol_version       = local.use_domain ? "TLSv1.2_2021" : "TLSv1"
   }
 }

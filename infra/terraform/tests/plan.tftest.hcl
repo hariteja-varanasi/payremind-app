@@ -89,3 +89,41 @@ run "stage_two" {
     error_message = "Daily job should enable"
   }
 }
+
+run "ephemeral_test_mode_without_domain" {
+  command = plan
+  variables {
+    domain_name    = ""
+    hosted_zone_id = ""
+    ephemeral      = true
+  }
+  assert {
+    condition     = length(aws_acm_certificate.viewer) == 0 && length(aws_route53_record.app) == 0
+    error_message = "No certificates or DNS without a domain"
+  }
+  assert {
+    condition     = length(aws_lb_listener.http) == 1 && length(aws_lb_listener.https) == 0
+    error_message = "Test mode uses the HTTP origin listener"
+  }
+  assert {
+    condition     = aws_db_instance.main.deletion_protection == false && aws_db_instance.main.skip_final_snapshot
+    error_message = "Test stack must be fully destroyable"
+  }
+  assert {
+    condition     = aws_lb.app.enable_deletion_protection == false && aws_s3_bucket.logs.force_destroy
+    error_message = "Test stack must be fully destroyable"
+  }
+  assert {
+    condition     = aws_cloudfront_distribution.app.viewer_certificate[0].cloudfront_default_certificate
+    error_message = "Test mode uses the *.cloudfront.net certificate"
+  }
+}
+
+run "domain_required_outside_test_mode" {
+  command = plan
+  variables {
+    domain_name = ""
+    ephemeral   = false
+  }
+  expect_failures = [var.domain_name]
+}
